@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- 配信先 (Mac App Store / Developer ID) が未決のため、どちらでも通るサンドボックス有効に倒している。
+	     クリップボードの読み取りはサンドボックス内で可能。Cmd+V への割り込み (イベントタップ) を
+	     入れることになった時に見直す -->
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
 </dict>
