@@ -1,0 +1,21 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# SwiftPM
+.build/
+.swiftpm/
+# テスト実行が、起動したディレクトリに残すカバレッジのカウンタ
+*.profraw
+
+# ローカル検証の出力置き場
+tmp/
+var/
+
+# マシン固有の値
+.envrc
+
+# macOS
+.DS_Store
