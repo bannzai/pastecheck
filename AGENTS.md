@@ -37,6 +37,7 @@
 
 - `docs/` (LP・プライバシーポリシー・利用規約・サポート) の表示は webtunnel で確認する: GitHub Actions の Linux runner で `docs/` を配信し、runner 上の Chromium にローカルの agent-browser から CDP 接続する。ローカルのブラウザを既定にしない
 - 起動: `WEBTUNNEL_REPO=bannzai/pastecheck ~/ghq/github.com/bannzai/webtunnel/local/webtunnel up <session> --ref <branch> --wait` (`.github/workflows/browser-session.yml` が動く)。接続先の IP は `local/webtunnel cdp <session>`、操作は `/webtunnel` skill に従う。セッション名は `pastecheck-<worktree>-web`
+- webtunnel で見られるのは `index.html` (静的ファイル) だけ。法務ページ (`privacy.md` 等) は GitHub Pages の Jekyll が HTML にするため、runner の `http.server` では 404 になる。法務ページは main にマージした後に公開 URL で確認する
 - 公開後 (main にマージ後) の URL は https://bannzai.github.io/pastecheck/ で、公開 URL の確認は `/landing-page-builder` skill の `verify-lp.sh` と `curl` で行う
 
 ## Xcode プロジェクト

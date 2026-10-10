@@ -20,9 +20,10 @@ AI チャット・Slack・GitHub にターミナルの出力やスクリーン�
 | 指標 | 計測元 (skill / コマンド) | 継続のしきい値 | 打ち切り条件 | 転換の条件 |
 | --- | --- | --- | --- | --- |
 | 累計ダウンロード数 (GitHub Releases 配信の場合) | `gh api repos/bannzai/pastecheck/releases --jq '[.[].assets[].download_count] \| add'` | 公開 4 週で 100 以上 | 公開 8 週で 100 未満が 2 回連続の判定日で続く | ダウンロードは伸びるが issue・star が 0 なら、配布経路 (Homebrew 公式 cask・App Store) の転換 |
-| 累計ダウンロード数 (Mac App Store 配信の場合) | release-app skill の App Store Connect API (Sales and Trends の units) | 公開 4 週で 100 以上 | 同上 | 同上 |
 | 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に保持する検出回数 (`defaults read com.bannzai.PasteCheck`。値は件数だけで中身は持たない) を判定日に読む | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み・実値の照合) |
-| GitHub の star と issue (利用者の反応) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`、`gh issue list -R bannzai/pastecheck --author '!bannzai'` | 公開 8 週で star 10 以上または他者の issue 1 件以上 | 公開 12 週で star 0 かつ他者の issue 0 | 無し |
+| GitHub の star と他者の issue (利用者の反応) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`、`gh issue list -R bannzai/pastecheck --search '-author:bannzai' --json number --jq length` | 公開 8 週で star 10 以上または他者の issue 1 件以上 | 公開 12 週で star 0 かつ他者の issue 0 | 無し |
+
+配信先が Mac App Store になった場合、ダウンロード数の行は App Store Connect の数値を取る skill かコマンドを用意した上で書き換える (castle に取得手段がまだ無いため、この時点では GitHub Releases の行だけを置く)。
 
 ## 必要な機能
 
