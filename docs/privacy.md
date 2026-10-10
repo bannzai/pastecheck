@@ -8,7 +8,7 @@ permalink: /privacy/
 
 # プライバシーポリシー
 
-bannzai (以下「提供者」) は、macOS 向けアプリ「PasteCheck」(以下「本アプリ」) における利用者の情報の取り扱いについて、本プライバシーポリシー (以下「本ポリシー」) を定めます。
+bannzai (以下「提供者」) は、macOS 向けアプリ「PasteCheck」(以下「本アプリ」) における利用者の情報の取り扱いについて、本プライバシーポリシー (以下「本ポリシー」) を定めます。本アプリは開発中で、本ポリシーは最初の公開版の設計 (`documents/PROJECT.md`) に基づいて書かれています。公開時に実装と照らして更新します。
 
 ## 要約
 
@@ -54,7 +54,10 @@ bannzai (以下「提供者」) は、macOS 向けアプリ「PasteCheck」(以�
 
 ## 情報の削除
 
-本アプリのデータはすべて利用者の Mac の中にあります。本アプリを削除すると設定も含めて削除されます。クリップボードの内容は本アプリが保存しないため、削除する対象はありません。
+本アプリのデータはすべて利用者の Mac の中にあり、設定は本アプリのコンテナフォルダ (`~/Library/Containers/com.bannzai.PasteCheck/`) に保存されます。本アプリを削除した後もこのフォルダが残ることがあるため、設定も含めて完全に消す時はこのフォルダを削除してください。クリップボードの内容は本アプリが保存しないため、削除する対象はありません。
+
+<!-- source: PasteCheck/PasteCheck.entitlements (com.apple.security.app-sandbox = true)。サンドボックスのアプリのデータが ~/Library/Containers/<bundle id>/ に置かれることは Apple の App Sandbox の文書 (https://developer.apple.com/documentation/security/app-sandbox) の container の説明による。アプリの削除後にコンテナが残るかは Apple の一次情報で確認できていないため「残ることがある」と書いている -->
+
 
 ## お問い合わせ
 

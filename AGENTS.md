@@ -20,6 +20,7 @@
 | `make build-macos` | macOS アプリのビルド (`-derivedDataPath tmp/DerivedData`) | PR の CI (`.github/workflows/ci.yml`、`macos-26` runner)。push して `gh pr checks <PR番号> --watch` で結果を見る。失敗は `gh run view <run ID> --log-failed` でログを読む |
 | `make test` | `PasteCheckCore` のユニットテスト (`swift test`)。検出ルールの純粋ロジックはここに置く | CI。ローカルでも可 (数秒で終わる) |
 | `make macos` | Release ビルドを `/Applications/PasteCheck.app` に配置する | ユーザーが手元で普段使いする時だけ |
+| `make macos-debug` | Debug ビルドを同じ場所に上書き配置する (Debug にしか無い操作を使う時だけ。終わったら `make macos` で戻す) | 同上 |
 
 ### 画面の確認 (simtunnel)
 

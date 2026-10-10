@@ -10,9 +10,12 @@ public enum SecretDetector {
     }
 }
 
-/// 機密情報の検出 1 件。
+/// 機密情報の検出 1 件。警告に出してよいのは `kind` と `range` から導く位置情報だけで、
+/// 一致した文字列そのものは持たない (`.claude/rules/clipboard-content-handling.md`)。
 public struct Finding: Equatable, Sendable {
+    /// 検出の種類。値は `SecretDetector` が定義する識別子 (例: `private-key`) で、検出ルールを足す時に増やす。
     public let kind: String
+    /// 検査した文字列の中で一致した範囲。
     public let range: Range<String.Index>
 
     public init(kind: String, range: Range<String.Index>) {
