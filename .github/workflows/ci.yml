@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    # public リポジトリでは macOS runner が無料。macos-26 は Swift 6 の PasteCheckCore が要る Xcode 26 を持つ。
+    # public リポジトリでは macOS runner が無料。simtunnel の macos-app-session と同じ macos-26 にして、CI と動作確認でビルド環境を揃える。
     runs-on: macos-26
     timeout-minutes: 30
     steps:
