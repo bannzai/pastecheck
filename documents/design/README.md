@@ -1,6 +1,6 @@
 # Design
 
-This directory holds the mockups an agent made at the "direction of look and experience" decision (gate 2 of the create-new-app skill), and any design received from bannzai.
+This directory holds the mockups an agent made for the "direction of look and experience" decision (https://github.com/bannzai/pastecheck/issues/5), and any design received from bannzai.
 
 ## Layout
 
@@ -12,4 +12,4 @@ This directory holds the mockups an agent made at the "direction of look and exp
 
 The files in this repository are the source. A canvas URL stops opening when the account is switched, so do not rely on it.
 
-When a `*.dc.html` file changes, regenerate `index.html` so the two stay in sync.
+`index.html` is kept in sync by hand: when a `*.dc.html` file changes, apply the same change to `index.html` (there is no generator script). A new round of mockups goes in a new `mock-<date>/` directory instead of editing an old one.

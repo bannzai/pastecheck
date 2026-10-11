@@ -12,7 +12,7 @@ macOS のメニューバーに常駐し、クリップボードにコピーし�
 
 ## 不変条件
 
-1. **クリップボードの中身をアプリの外に出さない**: 検査はすべて端末内で行う。クリップボードの内容 (テキスト・画像・検出した値) をファイル・ログ・`UserDefaults`・ネットワークに書き出さない。唯一の例外は、同じ Mac 上の SecChain の照合の機能に、照合のためだけにテキストを渡すこと (SecChain は値をメモリの中だけで扱い、出力は一致した秘密の名前だけ)。警告に表示するのは検出の種類・位置 (行・桁・文字数)・一致した SecChain の秘密の名前・コピー元のアプリ名だけで、検出した値そのものは表示しない。SecChain との照合でも、SecChain の秘密の値を PasteCheck 側のメモリ・ファイル・ログ・設定に持たない。コードを書く時・動作確認をする時の適用の仕方は `.claude/rules/clipboard-content-handling.md`
+1. **クリップボードの中身をアプリの外に出さない**: 検査はすべて端末内で行う。クリップボードの内容 (テキスト・画像・検出した値) をファイル・ログ・`UserDefaults`・ネットワークに書き出さない。唯一の例外は、同じ Mac 上の SecChain の照合の機能に、照合のためだけにテキストを渡すこと。渡す時はコマンドの引数ではなく標準入力か XPC のメッセージで渡し (引数は同じ Mac の他プロセスから `ps` で見える)、渡す先が正規の SecChain であることを署名 (Team ID と bundle ID) で確かめてから渡す。SecChain 側の照合の機能は、値をメモリの中だけで扱い一致した秘密の名前だけを返すよう作る (SecChain に求める要件。SecChain の既存の方針は https://github.com/bannzai/SecChain/blob/main/documents/PROJECT.md の設計判断 8「照合は secchain が行い、他のプロセスは保存された値を読まない」)。警告に表示するのは検出の種類・位置 (行・桁・文字数)・一致した SecChain の秘密の名前・検知した時に最前面だったアプリの名前だけで、検出した値そのものは表示しない。SecChain との照合でも、SecChain の秘密の値を PasteCheck 側のメモリ・ファイル・ログ・設定に持たない。コードを書く時・動作確認をする時の適用の仕方は `.claude/rules/clipboard-content-handling.md`
 2. **クリップボードを書き換えない (既定)**: 既存ツールの多くはコピー時に値をマスクへ置き換えるが、PasteCheck は警告だけを出し、貼り付けるかどうかの判断は利用者に残す。利用者が警告の中で明示的に「クリップボードを空にする」を押した時だけ書き換える。自動の置き換えや貼り付けのブロックは、入れるとしてもオプトインの設定にする
 3. **サーバー・アカウント・計測を持たない**: 提供者が利用者の情報を受け取る経路を作らない (プライバシーポリシー `docs/privacy.md` がこの前提で書かれている)
 
@@ -21,8 +21,8 @@ macOS のメニューバーに常駐し、クリップボードにコピーし�
 MVP の範囲 (「必要な機能」の一覧と過不足の判断は `DIRECTION.md`):
 
 - クリップボードの変更を検知し、テキストをパターン (正規表現) で検査する。対象の形式: AWS アクセスキー、GitHub トークン (`ghp_` / `github_pat_`)、OpenAI (`sk-`)、Slack (`xox`)、JWT、PEM 形式の秘密鍵、クレジットカード番号 (Luhn 検査)、`.env` 形式の `KEY=値` (値が長いランダム文字列)
-- SecChain (同じ作者の秘密管理アプリ https://github.com/bannzai/SecChain ) に保存した秘密の実値がクリップボードに入った時に、形式に依らず警告する。警告に出すのは SecChain 上の秘密の名前だけで値は出さない。経路は、SecChain 側に照合の機能を足して PasteCheck がテキストを渡し一致した名前だけを受け取る形 (CLI のサブコマンドか XPC) にし、Keychain のアクセスグループの共有で PasteCheck が値を読む案は採らない。どちらの形にするかと SecChain 側の変更は、実装する子 issue で設計する
-- 検出したら macOS の通知 (または自前の小さなウィンドウ) で、検出の種類と位置、コピー元のアプリ名 (`NSWorkspace.shared.frontmostApplication` の名前。取れなければ出さない) を知らせる。通知には「空にする」(利用者の明示的な操作でクリップボードを空にする) を置く
+- SecChain (同じ作者の秘密管理アプリ https://github.com/bannzai/SecChain ) に保存した秘密の実値がクリップボードのテキストに含まれる時 (部分一致。ターミナルの出力をまるごとコピーした中に混じっている場面のため) に、形式に依らず警告する。警告に出すのは SecChain 上の秘密の名前だけで値は出さない。経路は、SecChain 側に照合の機能を足して PasteCheck がテキストを渡し一致した名前だけを受け取る形 (CLI のサブコマンドか XPC) にし、Keychain のアクセスグループの共有で PasteCheck が値を読む案は採らない。どちらの形にするかと SecChain 側の変更は、実装する子 issue で設計する
+- 検出したら macOS の通知 (または自前の小さなウィンドウ) で、検出の種類と位置、検知した時に最前面だったアプリの名前 (`NSWorkspace.shared.frontmostApplication`。コピー元とは限らない (コピー直後にアプリを切り替えた時やユニバーサルクリップボード経由の時) ため、「最前面だったアプリ」と分かる文言にし、取れなければ出さない) を知らせる。通知には「空にする」(利用者の明示的な操作でクリップボードを空にする) を置く
 - 画像をコピーした時は Vision の OCR で文字を取り出し、同じ検査をする
 - メニューバーから検査の一時停止・検出の種類ごとのオン・オフ・ログイン時の自動起動を設定する
 - 初回起動時に、クリップボードのアクセス許可・通知の許可・SecChain の連携を案内する。クリップボードのアクセス許可は、macOS 15.4 以降が最初のプログラムからの読み取りで確認を出すこと (出典: https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum 「The default behavior for the General pasteboard is to ask upon programmatic access」) を前提に、その確認で許可を選ぶ案内と System Settings の Privacy & Security での設定の案内を置く。確認ダイアログの文言と選択肢 (「常に許可」の有無) は Apple の文書で確認できていない (未確認) ため、実装時に実機で確認して文言を合わせる
@@ -42,13 +42,13 @@ MVP に入れないもの (入れる時は `DIRECTION.md`「決めたこと」�
 | 項目 | 決定 | 理由 |
 | --- | --- | --- |
 | アプリ | SwiftUI の `MenuBarExtra` + ローカル SwiftPM パッケージ `PasteCheckCore` (純粋ロジック) | 検出ルールを UI から分離してユニットテストの対象にする (`.claude/rules/swift-coding-conventions.md`) |
-| 対応 OS | macOS 15.0 以上 | 2026 年 10 月時点で 2 世代前。`NSPasteboard` のアクセス制御 (15.4 以降。出典: https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum 「The default behavior for the General pasteboard is to ask upon programmatic access」。この制御が既定で有効になった macOS の版は、Apple の文書で確認できていない (未確認)) を前提に、許可ダイアログが出た時に「常に許可」へ案内する導入画面を設計に入れる。`detectedPatterns(for:)` (中身を読まずに判定できる API) の検出対象はメール・電話番号・URL・金額など 11 種類で、API キー・トークン・秘密鍵・カード番号は無い ( https://developer.apple.com/documentation/appkit/nspasteboard-detection-patterns ) ため、検査には中身の読み取りが要る |
+| 対応 OS | macOS 15.0 以上 | 2026 年 10 月時点で 2 世代前。`NSPasteboard` のアクセス制御 (15.4 以降。出典: https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum 「The default behavior for the General pasteboard is to ask upon programmatic access」。この制御が既定で有効になった macOS の版は、Apple の文書で確認できていない (未確認)) を前提に、許可の確認が出た時に許可を選ぶよう案内する導入画面を設計に入れる (確認の文言・選択肢は未確認。「機能」の初回起動の行)。`detectedPatterns(for:)` (中身を読まずに判定できる API) の検出対象はメール・電話番号・URL・金額など 11 種類で、API キー・トークン・秘密鍵・カード番号は無い ( https://developer.apple.com/documentation/appkit/nspasteboard-detection-patterns ) ため、検査には中身の読み取りが要る |
 | DB・ストレージ | 無し。設定と検出回数は `UserDefaults` だけ | 不変条件 1・3 |
 | バックエンド・認証 | 無し | 不変条件 3 |
 | Analytics・クラッシュ収集 | 無し | 不変条件 3。公開後の判定に使う指標は配信先の数値 (`DIRECTION.md`「判定基準」) |
 | 公開サイト・法務ドキュメント | GitHub Pages (`docs/`、main の `/docs` から配信) | create-new-app skill の既定 |
 | 配信先 | 先に Developer ID 署名 + 公証の DMG を GitHub Releases と自前の Homebrew tap (bannzai/homebrew-tap) から配る。Mac App Store 版は後から。雛形は SecChain の `release.yml` と `documents/macos-distribution.md` | 作るかの判断で bannzai が「両方」と決めた (`DIRECTION.md`「決めたこと」2026-10-11)。Cmd+V への割り込みなど App Sandbox 内で成立しない機能を Releases 版に載せられる |
 | 署名 | CI・simtunnel は全 configuration で ad-hoc (`CODE_SIGN_IDENTITY = -`)。配布用の Developer ID 署名は release workflow だけで使う (証明書と App Store Connect API key は GitHub Secrets) | CI と simtunnel の runner に署名 identity が無い |
-| App Sandbox | 有効のまま | Mac App Store 版と同じコードにするため。SecChain との照合は SecChain 側の照合の機能に文字列を渡して一致した名前だけを受け取る経路にし、Keychain のアクセスグループの共有で値を読まない (SecChain の設計判断 8: 他のプロセスに値を持たせない) |
-| 言語 | リポジトリに入る文書・コードのコメント・UI 文言は英語。会話・issue・PR・GitHub のコメントは日本語 | Developer ID + Homebrew tap で配る開発者向けツールは、他者の利用・貢献を前提にした OSS に当たり、英語でないと利用者と貢献者に届かない |
+| App Sandbox | MVP は有効のまま。Releases 版でサンドボックス内に成立しない機能 (Cmd+V への割り込み。SecChain との照合の経路もサンドボックス内で成立するかは未確認) を入れる時は、Releases 版だけサンドボックスを外す構成 (configuration か target の分離) をその機能の子 issue で決めて `DIRECTION.md`「決めたこと」に書く | Mac App Store 版と同じコードにするため。SecChain との照合は SecChain 側の照合の機能に文字列を渡して一致した名前だけを受け取る経路にし、Keychain のアクセスグループの共有で値を読まない (不変条件 1) |
+| 言語 | リポジトリに入る文書・コードのコメント・UI 文言は英語。会話・issue・PR・GitHub のコメントは日本語。既存の日本語のファイルは英語化の子 issue で切り替えるまで日本語のまま (`AGENTS.md`「言語」) | Developer ID + Homebrew tap で配る開発者向けツールは、他者の利用・貢献を前提にした OSS に当たり、英語でないと利用者と貢献者に届かない |
 | 動作確認 | GitHub Actions の macOS runner (CI) と simtunnel (画面)、webtunnel (公開サイト)。手順は `AGENTS.md`「検証方法」 | このマシンの負荷を避ける |

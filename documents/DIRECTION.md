@@ -20,7 +20,7 @@ AI チャット・Slack・GitHub にターミナルの出力やスクリーン�
 | 指標 | 計測元 (skill / コマンド) | 継続のしきい値 | 打ち切り条件 | 転換の条件 |
 | --- | --- | --- | --- | --- |
 | 累計ダウンロード数 (GitHub Releases) | `gh api repos/bannzai/pastecheck/releases --jq '[.[].assets[].download_count] \| add'` | 公開 4 週で 100 以上 | 公開 8 週で 100 未満が 2 回連続の判定日で続く | ダウンロードは伸びるが issue・star が 0 なら、配布経路 (Homebrew 公式 cask・App Store) の転換 |
-| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (`defaults read com.bannzai.PasteCheck`。値は日付と件数だけで中身は持たない。サンドボックスのコンテナ内の plist を読む必要があれば、実装する子 issue で計測元のコマンドを確定してこの行を直す) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み・実値の照合への寄せ) |
+| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (値は日付と件数だけで中身は持たない。読むコマンドは未確認: サンドボックス有効のアプリの `UserDefaults` はコンテナ `~/Library/Containers/com.bannzai.PasteCheck/Data/Library/Preferences/com.bannzai.PasteCheck.plist` に書かれる想定で、`defaults read` でそのパスを読めるかを実装する子 issue https://github.com/bannzai/pastecheck/issues/7 で確かめてこの行を直す) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み。SecChain の実値との照合は MVP に入ったため、転換では既定を照合だけに寄せる) |
 | GitHub の star と他者の issue (利用者の反応) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`、`gh issue list -R bannzai/pastecheck --search '-author:bannzai' --json number --jq length` | 公開 8 週で star 10 以上または他者の issue 1 件以上 | 公開 12 週で star 0 かつ他者の issue 0 | 無し |
 
 ## 必要な機能

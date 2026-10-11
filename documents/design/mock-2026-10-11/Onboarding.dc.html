@@ -44,7 +44,7 @@ class Component extends DCLogic {
   renderVals() {
     return {
       steps: [
-        { title: 'Allow clipboard access', body: 'macOS will ask when PasteCheck first reads the clipboard. Choose Always Allow so checks run without a prompt each time.', action: 'Allow' },
+        { title: 'Allow clipboard access', body: 'macOS will ask when PasteCheck first reads the clipboard. Allow it there, or in System Settings under Privacy &amp; Security, so checks can run.', action: 'Allow' },
         { title: 'Allow notifications', body: 'Warnings arrive as notifications. They name the kind of secret and where it sits, never the value itself.', action: 'Allow' },
         { title: 'Link SecChain (optional)', body: 'Warn when your own saved secrets are copied, not just look-alikes. Values never leave SecChain.', action: 'Link' }
       ]
