@@ -2,7 +2,7 @@
 
 ## 言語
 
-- コードのコメント・リポジトリに入る文書 (README・`documents/`・`docs/`・rules) は日本語で書く。配信先が決まって OSS (Homebrew / GitHub Releases で配布するツール) として公開することになった時に英語へ切り替える (`documents/DIRECTION.md`「決めたこと」で確認する)
+- コードのコメント・リポジトリに入る文書 (README・`documents/`・`docs/`・rules)・UI 文言は英語で書く (MIT ライセンス (`LICENSE`) で公開する開発者向けツールのため。決定: `documents/DIRECTION.md`「決めたこと」2026-10-11)。既存の日本語の文書・コメントは、英語へ切り替える子 issue (https://github.com/bannzai/pastecheck/issues/8) で一括して直す。それまでの間、新しいファイルは英語で書き、既存の日本語のファイルへの追記はそのファイルの言語 (日本語) に合わせて、1 つのファイルの中で日英を混ぜない
 - ユーザーとの会話、issue・PR の本文、GitHub 上のコメントは日本語
 
 ## 要件と設計判断
@@ -30,7 +30,7 @@
 - セッション名は `pastecheck-<worktree>-mac` にする。tailnet のホスト名になるため、他リポジトリのセッションと衝突させない
 - 終わったら `up` と同じ環境変数で `simtunnel down <session>` する (macOS runner は CI と共有)
 - 前提: Secrets `TS_OIDC_CLIENT_ID` / `TS_OIDC_AUDIENCE` が登録されていること (`gh secret list -R bannzai/pastecheck`)。未登録の間はセッションが OIDC 認証で失敗する。登録はユーザー作業 (「ユーザー作業の一覧」issue)
-- runner には署名 identity が無いため、プロジェクトは全 configuration で ad-hoc 署名 (`CODE_SIGN_IDENTITY = -`) にしている。配布用の署名は配信先が決まってから別に足す
+- runner には署名 identity が無いため、プロジェクトは全 configuration で ad-hoc 署名 (`CODE_SIGN_IDENTITY = -`) にしている。配布用の Developer ID 署名は release workflow だけで使う (`documents/PROJECT.md`「技術スタック・インフラの決定」の署名の行)
 - ローカルで起動してよいのは、WebDriverAgent の操作 (click・入力・スクリーンショット) では確認が成立しない場合 (例: Cmd+V の割り込みに Accessibility の許可が要り、runner では許可ダイアログに答えられない) と、`/ios-simulator` skill Phase 1 の運用上の条件 (未 push の変更、tailnet 未接続、runner の並列上限等) に当たる場合だけ。理由を完了報告に書く
 - クリップボードに入れる検証用の値は `.claude/rules/clipboard-content-handling.md` に従い、明らかに偽の値にする
 
