@@ -12,7 +12,7 @@ macOS のメニューバーに常駐し、クリップボードにコピーし�
 
 ## 不変条件
 
-1. **クリップボードの中身をアプリの外に出さない**: 検査はすべて端末内で行う。クリップボードの内容 (テキスト・画像・検出した値) をファイル・ログ・`UserDefaults`・ネットワークに書き出さない。唯一の例外は、同じ Mac 上の SecChain の照合の機能に、照合のためだけにテキストを渡すこと。渡す時はコマンドの引数ではなく標準入力か XPC のメッセージで渡し (引数は同じ Mac の他プロセスから `ps` で見える)、渡す先が正規の SecChain であることを署名 (Team ID と bundle ID) で確かめてから渡す。SecChain 側の照合の機能は、値をメモリの中だけで扱い一致した秘密の名前だけを返すよう作る (SecChain に求める要件。SecChain の既存の方針は https://github.com/bannzai/SecChain/blob/main/documents/PROJECT.md の設計判断 8「照合は secchain が行い、他のプロセスは保存された値を読まない」)。警告に表示するのは検出の種類・位置 (行・桁・文字数)・一致した SecChain の秘密の名前・検知した時に最前面だったアプリの名前だけで、検出した値そのものは表示しない。SecChain との照合でも、SecChain の秘密の値を PasteCheck 側のメモリ・ファイル・ログ・設定に持たない。コードを書く時・動作確認をする時の適用の仕方は `.claude/rules/clipboard-content-handling.md`
+1. **クリップボードの中身をアプリの外に出さない**: 検査はすべて端末内で行う。クリップボードの内容 (テキスト・画像・検出した値) をファイル・ログ・`UserDefaults`・ネットワークに書き出さない。唯一の例外は、同じ Mac 上の SecChain の照合の機能に、照合のためだけにテキストを渡すこと。渡す時はコマンドの引数ではなく標準入力か XPC のメッセージで渡し (引数は同じ Mac の他プロセスから `ps` で見える)、渡す先が正規の SecChain であることを署名 (Team ID と bundle ID) で確かめてから渡す。SecChain 側の照合の機能は、値をメモリの中だけで扱い一致した秘密の名前だけを返すよう作る (SecChain に求める要件。SecChain の既存の方針は https://github.com/bannzai/SecChain/blob/main/documents/PROJECT.md の設計判断 8 "The matching is done by `secchain mask`, and the plugin never reads a stored value" で、照合は secchain 側が行い値を読む側のプロセスを増やさない趣旨)。警告に表示するのは検出の種類・位置 (行・桁・文字数)・一致した SecChain の秘密の名前・検知した時に最前面だったアプリの名前だけで、検出した値そのものは表示しない。SecChain との照合でも、SecChain の秘密の値を PasteCheck 側のメモリ・ファイル・ログ・設定に持たない。コードを書く時・動作確認をする時の適用の仕方は `.claude/rules/clipboard-content-handling.md`
 2. **クリップボードを書き換えない (既定)**: 既存ツールの多くはコピー時に値をマスクへ置き換えるが、PasteCheck は警告だけを出し、貼り付けるかどうかの判断は利用者に残す。利用者が警告の中で明示的に「クリップボードを空にする」を押した時だけ書き換える。自動の置き換えや貼り付けのブロックは、入れるとしてもオプトインの設定にする
 3. **サーバー・アカウント・計測を持たない**: 提供者が利用者の情報を受け取る経路を作らない (プライバシーポリシー `docs/privacy.md` がこの前提で書かれている)
 
@@ -22,10 +22,10 @@ MVP の範囲 (「必要な機能」の一覧と過不足の判断は `DIRECTION
 
 - クリップボードの変更を検知し、テキストをパターン (正規表現) で検査する。対象の形式: AWS アクセスキー、GitHub トークン (`ghp_` / `github_pat_`)、OpenAI (`sk-`)、Slack (`xox`)、JWT、PEM 形式の秘密鍵、クレジットカード番号 (Luhn 検査)、`.env` 形式の `KEY=値` (値が長いランダム文字列)
 - SecChain (同じ作者の秘密管理アプリ https://github.com/bannzai/SecChain ) に保存した秘密の実値がクリップボードのテキストに含まれる時 (部分一致。ターミナルの出力をまるごとコピーした中に混じっている場面のため) に、形式に依らず警告する。警告に出すのは SecChain 上の秘密の名前だけで値は出さない。経路は、SecChain 側に照合の機能を足して PasteCheck がテキストを渡し一致した名前だけを受け取る形 (CLI のサブコマンドか XPC) にし、Keychain のアクセスグループの共有で PasteCheck が値を読む案は採らない。どちらの形にするかと SecChain 側の変更は、実装する子 issue で設計する
-- 検出したら macOS の通知 (または自前の小さなウィンドウ) で、検出の種類と位置、検知した時に最前面だったアプリの名前 (`NSWorkspace.shared.frontmostApplication`。コピー元とは限らない (コピー直後にアプリを切り替えた時やユニバーサルクリップボード経由の時) ため、「最前面だったアプリ」と分かる文言にし、取れなければ出さない) を知らせる。通知には「空にする」(利用者の明示的な操作でクリップボードを空にする) を置く
+- 検出したら macOS の通知 (または自前の小さなウィンドウ) で、検出の種類と位置、検知した時に最前面だったアプリの名前 (`NSWorkspace.shared.frontmostApplication`。コピー元とは限らない (コピー直後にアプリを切り替えた時やユニバーサルクリップボード経由の時) ため、「最前面だったアプリ」と分かる文言にし、取れなければ出さない) を知らせる。通知には「空にする」(利用者の明示的な操作でクリップボードを空にする) と、パターン検出の時だけ "Not a secret" (その警告を誤検出として数える。SecChain の実値との一致は誤検出になり得ないため出さない) を置く
 - 画像をコピーした時は Vision の OCR で文字を取り出し、同じ検査をする
 - メニューバーから検査の一時停止・検出の種類ごとのオン・オフ・ログイン時の自動起動を設定する
-- 初回起動時に、クリップボードのアクセス許可・通知の許可・SecChain の連携を案内する。クリップボードのアクセス許可は、macOS 15.4 以降が最初のプログラムからの読み取りで確認を出すこと (出典: https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum 「The default behavior for the General pasteboard is to ask upon programmatic access」) を前提に、その確認で許可を選ぶ案内と System Settings の Privacy & Security での設定の案内を置く。確認ダイアログの文言と選択肢 (「常に許可」の有無) は Apple の文書で確認できていない (未確認) ため、実装時に実機で確認して文言を合わせる
+- 初回起動時に、クリップボードのアクセス許可・通知の許可・SecChain の連携を案内する。クリップボードのアクセス許可は、macOS が最初のプログラムからの読み取りで確認を出すこと (API は macOS 15.4 以降。確認が既定で出る版は「技術スタック・インフラの決定」の対応 OS の行のとおり未確認。出典: https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum 「The default behavior for the General pasteboard is to ask upon programmatic access」) を前提に、その確認で許可を選ぶ案内と System Settings の Privacy & Security での設定の案内を置く。確認ダイアログの文言と選択肢 (「常に許可」の有無) は Apple の文書で確認できていない (未確認) ため、実装時に実機で確認して文言を合わせる
 - メニューバーから「お問い合わせ」(`bannzai.app@gmail.com` 宛のメールを開く) とプライバシーポリシー・利用規約 (`docs/`) へ到達できる
 - 警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数を、日付ごとの件数として端末内に保持する (中身・値・位置は持たない)。メニューの「今日の警告」と、`DIRECTION.md`「判定基準」の期間ごとの有効な警告の回数 (警告 − 誤検出) はこの日付ごとの件数から求める
 
