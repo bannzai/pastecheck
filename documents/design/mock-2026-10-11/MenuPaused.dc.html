@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PasteCheck menu while paused</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#1f6fd6}a:hover{color:#174f99}
+</style>
+</helmet>
+<div style="width: 320px; height: 560px; box-sizing: border-box; background: #f2f2f4; border: 1px solid #c9c9ce; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.18); padding: 6px; display: flex; flex-direction: column; gap: 2px; color: #1c1c1e; font-size: 13px">
+  <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Shield, paused"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"></path><path d="M10 9v6M14 9v6"></path></svg>
+    <div style="display: flex; flex-direction: column; gap: 1px">
+      <div style="font-weight: 600; font-size: 13px; color: #6e6e73">PasteCheck</div>
+      <div style="font-size: 11px; color: #b25a00">Paused · resumes in 7 min</div>
+    </div>
+  </div>
+  <div style="height: 1px; background: #d6d6db; margin: 2px 8px"></div>
+  <div style="margin: 4px 8px; padding: 10px 12px; background: #fff4e5; border: 1px solid #f0c98a; border-radius: 8px; font-size: 12px; color: #6b3d00; line-height: 1.4">Nothing you copy is checked while paused. Resume before you paste anything you are unsure about.</div>
+  <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 32px; margin-top: 4px; background: #1f6fd6; border: 0; padding: 6px 10px; border-radius: 6px; font: inherit; font-weight: 600; color: #ffffff; text-align: left; cursor: pointer"><span>Resume now</span><span style="font-size: 11px; color: #d6e6fa">⌘P</span></button>
+  <div style="height: 1px; background: #d6d6db; margin: 2px 8px"></div>
+  <div style="padding: 4px 10px 2px; font-size: 11px; font-weight: 600; color: #6e6e73">Detect</div>
+  <sc-for list="{{rules}}" as="rule" hint-placeholder-count="6">
+    <label style="display: flex; align-items: center; justify-content: space-between; min-height: 30px; padding: 4px 10px; cursor: pointer; color: #8a8a90">
+      <span>{{rule.label}}</span>
+      <input type="checkbox" checked="{{rule.on}}" disabled aria-label="{{rule.label}}" style="width: 16px; height: 16px; accent-color: #1f6fd6; margin: 0">
+    </label>
+  </sc-for>
+  <div style="height: 1px; background: #d6d6db; margin: 2px 8px"></div>
+  <label style="display: flex; align-items: center; justify-content: space-between; min-height: 30px; padding: 4px 10px; cursor: pointer"><span>Launch at login</span><input type="checkbox" checked aria-label="Launch at login" style="width: 16px; height: 16px; accent-color: #1f6fd6; margin: 0"></label>
+  <div style="height: 1px; background: #d6d6db; margin: 2px 8px"></div>
+  <a href="#" style="display: block; min-height: 30px; padding: 7px 10px; text-decoration: none; color: #1c1c1e">Contact support</a>
+  <a href="#" style="display: block; min-height: 30px; padding: 7px 10px; text-decoration: none; color: #1c1c1e">Privacy policy and terms</a>
+  <div style="height: 1px; background: #d6d6db; margin: 2px 8px"></div>
+  <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 32px; background: transparent; border: 0; padding: 6px 10px; border-radius: 6px; font: inherit; color: #1c1c1e; text-align: left; cursor: pointer"><span>Quit PasteCheck</span><span style="font-size: 11px; color: #8a8a90">⌘Q</span></button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":320,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      rules: [
+        { label: 'API keys and tokens', on: true },
+        { label: 'Private keys (PEM)', on: true },
+        { label: 'JWT', on: true },
+        { label: 'Credit card numbers', on: true },
+        { label: '.env style KEY=value', on: false },
+        { label: 'Text inside images (OCR)', on: true },
+        { label: 'SecChain secrets', on: true }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

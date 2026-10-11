@@ -2,7 +2,7 @@
 
 ## 言語
 
-- コードのコメント・リポジトリに入る文書 (README・`documents/`・`docs/`・rules) は日本語で書く。配信先が決まって OSS (Homebrew / GitHub Releases で配布するツール) として公開することになった時に英語へ切り替える (`documents/DIRECTION.md`「決めたこと」で確認する)
+- コードのコメント・リポジトリに入る文書 (README・`documents/`・`docs/`・rules)・UI 文言は英語で書く (Developer ID + Homebrew tap で配る開発者向けツールは OSS に当たるため。決定: `documents/DIRECTION.md`「決めたこと」2026-10-11)。既存の日本語の文書・コメントは、英語へ切り替える子 issue (ロードマップの親 issue から辿る) で一括して直す。それまでの間、新しく書くものは英語にし、既存の日本語の箇所を部分的に英語に混ぜない
 - ユーザーとの会話、issue・PR の本文、GitHub 上のコメントは日本語
 
 ## 要件と設計判断
