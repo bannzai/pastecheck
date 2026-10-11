@@ -20,7 +20,7 @@ AI チャット・Slack・GitHub にターミナルの出力やスクリーン�
 | 指標 | 計測元 (skill / コマンド) | 継続のしきい値 | 打ち切り条件 | 転換の条件 |
 | --- | --- | --- | --- | --- |
 | 累計ダウンロード数 (GitHub Releases) | `gh api repos/bannzai/pastecheck/releases --jq '[.[].assets[].download_count] \| add'` | 公開 4 週で 100 以上 | 公開 8 週で 100 未満が 2 回連続の判定日で続く | ダウンロードは伸びるが issue・star が 0 なら、配布経路 (Homebrew 公式 cask・App Store) の転換 |
-| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (値は日付と件数だけで中身は持たない。読むコマンドは未確認: サンドボックス有効のアプリの `UserDefaults` はコンテナ `~/Library/Containers/com.bannzai.PasteCheck/Data/Library/Preferences/com.bannzai.PasteCheck.plist` に書かれる想定で、`defaults read` でそのパスを読めるかを実装する子 issue https://github.com/bannzai/pastecheck/issues/7 で確かめてこの行を直す) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み。SecChain の実値との照合は MVP に入ったため、転換では既定を照合だけに寄せる) |
+| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (値は日付と件数だけで中身は持たない。読むコマンドは未確認: サンドボックス有効のアプリの `UserDefaults` はコンテナ `~/Library/Containers/com.bannzai.PasteCheck/Data/Library/Preferences/com.bannzai.PasteCheck.plist` に書かれる想定で、`defaults read` でそのパスを読めるかを実装する子 issue https://github.com/bannzai/pastecheck/issues/7 で確かめてこの行を直す) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が 1 件以上あり、かつ有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み。SecChain の実値との照合は MVP に入ったため、転換では既定を照合だけに寄せる) |
 | GitHub の star と他者の issue (利用者の反応) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`、`gh issue list -R bannzai/pastecheck --search '-author:bannzai' --json number --jq length` | 公開 8 週で star 10 以上または他者の issue 1 件以上 | 公開 12 週で star 0 かつ他者の issue 0 | 無し |
 
 ## 必要な機能
@@ -62,6 +62,7 @@ MVP (作るかの判断で bannzai が「両方 (警告だけ型を土台に、�
 | 2026-10-11 | 作るかの判断 | 配信先は両方: 先に Developer ID 署名 + 公証で GitHub Releases と自前の Homebrew tap から配り、Mac App Store 版は後から出す。App Sandbox 内で成立しない機能は Releases 版だけの機能にする | bannzai |
 | 2026-10-11 | 作るかの判断 | 作り手の目的は「自分が使いたい」と「ポートフォリオ」として扱う (返答が「よろしく」で目的の指定が無く、評価レポートの目的別の判定でこの 2 つが「条件付きで作る」に当たるため)。収益は目的にしないため、MVP に課金を入れず、特定商取引法に基づく表記は対象外にする | agent |
 | 2026-10-11 | 作るかの判断 | Developer ID + Homebrew tap で配る開発者向けツールは OSS に当たるため、リポジトリに入る文書 (`docs/` の紹介ページ・法務文書を含む)・コードのコメント・UI 文言を英語に切り替える。会話・issue・PR・GitHub のコメントは日本語のまま。日本語のローカライズは公開後の候補にする | agent |
+| 2026-10-11 | 作るかの判断 | OSS として公開するため、ライセンスは MIT (`LICENSE`。同じ作者の SecChain と同じ) にする。配布の経路だけでは利用・改変・再配布の許諾にならないため、ライセンスのファイルを置いて初めて OSS と呼ぶ | agent |
 | 2026-10-11 | 作るかの判断 | MVP は App Sandbox を有効のまま作る (Mac App Store 版と同じコードにするため)。SecChain との照合は、SecChain の秘密の値を PasteCheck に持たない経路 (SecChain 側に照合の機能を足し、一致した名前だけを受け取る) で行い、Keychain のアクセスグループの共有で値を読む案は採らない。経路の都合で Releases 版だけサンドボックスを外す判断が要る時は、照合の子 issue でこの表に追記する | agent |
 | 2026-10-11 | 作るかの判断 | ロードマップの弾の分け方: 土台 (検出ルールとクリップボードの監視・通知、英語への切り替え) → 土台に依存する機能 (OCR、メニューバーの設定と初回起動の案内、アプリアイコン、SecChain との照合) → 配布 (署名・公証・Releases・tap) | agent |
 | 2026-10-11 | 作るかの判断 | 不変条件 1 (クリップボードの中身をアプリの外に出さない) に唯一の例外を認める: 同じ Mac 上の SecChain の照合の機能へ、照合のためだけに、引数ではなく標準入力か XPC で、署名 (Team ID と bundle ID) を確かめた上でテキストを渡し、受け取るのは一致した秘密の名前だけにする (`PROJECT.md` 不変条件 1 と `.claude/rules/clipboard-content-handling.md`) | agent (SecChain の実値照合を MVP に含める bannzai の決定を実現する唯一の経路として) |

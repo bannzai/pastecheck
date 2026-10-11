@@ -2,7 +2,7 @@
 
 ## 言語
 
-- コードのコメント・リポジトリに入る文書 (README・`documents/`・`docs/`・rules)・UI 文言は英語で書く (Developer ID + Homebrew tap で配る開発者向けツールは OSS に当たるため。決定: `documents/DIRECTION.md`「決めたこと」2026-10-11)。既存の日本語の文書・コメントは、英語へ切り替える子 issue (https://github.com/bannzai/pastecheck/issues/8) で一括して直す。それまでの間、新しいファイルは英語で書き、既存の日本語のファイルへの追記はそのファイルの言語 (日本語) に合わせて、1 つのファイルの中で日英を混ぜない
+- コードのコメント・リポジトリに入る文書 (README・`documents/`・`docs/`・rules)・UI 文言は英語で書く (MIT ライセンス (`LICENSE`) で公開する開発者向けツールのため。決定: `documents/DIRECTION.md`「決めたこと」2026-10-11)。既存の日本語の文書・コメントは、英語へ切り替える子 issue (https://github.com/bannzai/pastecheck/issues/8) で一括して直す。それまでの間、新しいファイルは英語で書き、既存の日本語のファイルへの追記はそのファイルの言語 (日本語) に合わせて、1 つのファイルの中で日英を混ぜない
 - ユーザーとの会話、issue・PR の本文、GitHub 上のコメントは日本語
 
 ## 要件と設計判断
