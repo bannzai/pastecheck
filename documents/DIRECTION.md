@@ -20,7 +20,7 @@ AI チャット・Slack・GitHub にターミナルの出力やスクリーン�
 | 指標 | 計測元 (skill / コマンド) | 継続のしきい値 | 打ち切り条件 | 転換の条件 |
 | --- | --- | --- | --- | --- |
 | 累計ダウンロード数 (GitHub Releases) | `gh api repos/bannzai/pastecheck/releases --jq '[.[].assets[].download_count] \| add'` | 公開 4 週で 100 以上 | 公開 8 週で 100 未満が 2 回連続の判定日で続く | ダウンロードは伸びるが issue・star が 0 なら、配布経路 (Homebrew 公式 cask・App Store) の転換 |
-| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (`defaults read com.bannzai.PasteCheck`。値は件数だけで中身は持たない。サンドボックスのコンテナ内の plist を読む必要があれば、実装する子 issue で計測元のコマンドを確定してこの行を直す) を判定日に読み、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み・実値の照合への寄せ) |
+| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (`defaults read com.bannzai.PasteCheck`。値は日付と件数だけで中身は持たない。サンドボックスのコンテナ内の plist を読む必要があれば、実装する子 issue で計測元のコマンドを確定してこの行を直す) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み・実値の照合への寄せ) |
 | GitHub の star と他者の issue (利用者の反応) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`、`gh issue list -R bannzai/pastecheck --search '-author:bannzai' --json number --jq length` | 公開 8 週で star 10 以上または他者の issue 1 件以上 | 公開 12 週で star 0 かつ他者の issue 0 | 無し |
 
 ## 必要な機能
@@ -28,7 +28,7 @@ AI チャット・Slack・GitHub にターミナルの出力やスクリーン�
 MVP (作るかの判断で bannzai が「両方 (警告だけ型を土台に、実値照合を MVP に含める)」と決めた一覧。要件の本文は `PROJECT.md`「機能」):
 
 - [ ] クリップボードの変更検知とテキストのパターン検査 (AWS・GitHub・OpenAI・Slack のキー、JWT、PEM 秘密鍵、カード番号、`.env` 形式)
-- [ ] 検出時の通知 (種類と位置だけ。値は出さない)。警告を出した回数と、通知の "Not a secret" で記録した誤検出の回数の端末内での保持 (判定基準の計測元)
+- [ ] 検出時の通知 (種類と位置だけ。値は出さない)。警告を出した回数と、通知の "Not a secret" で記録した誤検出の回数の、日付ごとの端末内での保持 (判定基準の計測元とメニューの「今日の警告」)
 - [ ] SecChain に保存した秘密の実値との照合 (形式に依らず、自分の秘密そのものがコピーされた時だけ確実に警告する。値を PasteCheck 側に持たない照合の経路は子 issue で設計し、SecChain 側の対応が要る場合はそれを前提にする)
 - [ ] 画像の OCR 検査 (Vision)
 - [ ] メニューバーの設定 (一時停止・種類ごとのオン・オフ・ログイン時の自動起動) と、初回起動時の案内 (クリップボードのアクセス許可・通知の許可・SecChain の連携)
@@ -72,5 +72,5 @@ MVP (作るかの判断で bannzai が「両方 (警告だけ型を土台に、�
 - 通知の実装方式 (UserNotifications か自前のウィンドウか)
 - 設定の保存形式と項目名
 - メニューの文言と並び
-- SecChain との照合の経路 (Keychain の共有・ハッシュの突き合わせ・XPC 等) と、SecChain 側に足す変更の設計
+- SecChain との照合の経路のうち、SecChain 側に足す照合の機能の形 (CLI のサブコマンドか XPC か。Keychain の共有で値を読む案は採らないと決めた) と、その設計
 - Homebrew tap の cask の書き方と release workflow の構成 (SecChain の `release.yml`・`documents/macos-distribution.md` を雛形にする)
