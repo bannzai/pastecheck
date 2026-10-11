@@ -27,7 +27,7 @@ MVP の範囲 (「必要な機能」の一覧と過不足の判断は `DIRECTION
 - メニューバーから検査の一時停止・検出の種類ごとのオン・オフ・ログイン時の自動起動を設定する
 - 初回起動時に、クリップボードのアクセス許可 (macOS が最初のプログラムからの読み取りで出すダイアログで「常に許可」を選ぶ案内)・通知の許可・SecChain の連携を案内する
 - メニューバーから「お問い合わせ」(`bannzai.app@gmail.com` 宛のメールを開く) とプライバシーポリシー・利用規約 (`docs/`) へ到達できる
-- 有効だった警告の回数 (件数だけ) を端末内に保持する (`DIRECTION.md`「判定基準」の計測元)
+- 警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (どちらも件数だけ) を端末内に保持する。有効だった警告の回数は警告 − 誤検出で求める (`DIRECTION.md`「判定基準」の計測元)
 
 MVP に入れないもの (入れる時は `DIRECTION.md`「決めたこと」で判断する):
 
@@ -49,6 +49,6 @@ MVP に入れないもの (入れる時は `DIRECTION.md`「決めたこと」�
 | 公開サイト・法務ドキュメント | GitHub Pages (`docs/`、main の `/docs` から配信) | create-new-app skill の既定 |
 | 配信先 | 先に Developer ID 署名 + 公証の DMG を GitHub Releases と自前の Homebrew tap (bannzai/homebrew-tap) から配る。Mac App Store 版は後から。雛形は SecChain の `release.yml` と `documents/macos-distribution.md` | 作るかの判断で bannzai が「両方」と決めた (`DIRECTION.md`「決めたこと」2026-10-11)。Cmd+V への割り込みなど App Sandbox 内で成立しない機能を Releases 版に載せられる |
 | 署名 | CI・simtunnel は全 configuration で ad-hoc (`CODE_SIGN_IDENTITY = -`)。配布用の Developer ID 署名は release workflow だけで使う (証明書と App Store Connect API key は GitHub Secrets) | CI と simtunnel の runner に署名 identity が無い |
-| App Sandbox | 有効のまま | Mac App Store 版と同じコードにするため。SecChain との照合で Keychain の共有が要る場合は keychain-access-groups の entitlement で行う |
+| App Sandbox | 有効のまま | Mac App Store 版と同じコードにするため。SecChain との照合は SecChain 側の照合の機能に文字列を渡して一致した名前だけを受け取る経路にし、Keychain のアクセスグループの共有で値を読まない (SecChain の設計判断 8: 他のプロセスに値を持たせない) |
 | 言語 | リポジトリに入る文書・コードのコメント・UI 文言は英語。会話・issue・PR・GitHub のコメントは日本語 | Developer ID + Homebrew tap で配る開発者向けツールは OSS に当たる (`~/.claude/CLAUDE.md` 基本ルール) |
 | 動作確認 | GitHub Actions の macOS runner (CI) と simtunnel (画面)、webtunnel (公開サイト)。手順は `AGENTS.md`「検証方法」 | このマシンの負荷を避ける |
