@@ -5,14 +5,19 @@ import UserNotifications
 /// Shows the warning notification and carries out its two actions.
 ///
 /// The notification text comes from `WarningMessage` and holds only kinds and positions. The only extra data on the
-/// notification is the day key used to count a "Not a secret" press and the pasteboard `changeCount` the warning was
-/// about, never anything from the clipboard (`documents/PROJECT.md` invariant 1).
+/// notification is the day key used to count a "Not a secret" press, the pasteboard `changeCount` the warning was
+/// about, and the launch it was posted in, never anything from the clipboard (`documents/PROJECT.md` invariant 1).
 enum WarningNotifier {
     static let categoryIdentifier = "secretWarning"
     static let clearClipboardActionIdentifier = "clearClipboard"
     static let notASecretActionIdentifier = "notASecret"
     static let dayKeyUserInfoKey = "dayKey"
     static let changeCountUserInfoKey = "changeCount"
+    static let launchIDUserInfoKey = "launchID"
+    /// Identifies this run of the app. A `changeCount` from an earlier run can equal the current one by coincidence
+    /// (for example after the Mac restarts), so a warning left in Notification Center from an earlier run must not
+    /// clear the clipboard.
+    static let launchID = UUID().uuidString
 
     /// Registers the warning's actions and asks for permission to notify. Safe to call on every launch: the system
     /// replaces the categories and only asks the user once.
@@ -48,7 +53,7 @@ enum WarningNotifier {
         content.title = WarningMessage.title(findings: findings)
         content.body = WarningMessage.body(findings: findings, frontmostAppName: frontmostAppName)
         content.categoryIdentifier = categoryIdentifier
-        content.userInfo = [dayKeyUserInfoKey: dayKey, changeCountUserInfoKey: changeCount]
+        content.userInfo = [dayKeyUserInfoKey: dayKey, changeCountUserInfoKey: changeCount, launchIDUserInfoKey: launchID]
         content.sound = .default
         do {
             try await UNUserNotificationCenter.current().add(
@@ -65,10 +70,10 @@ enum WarningNotifier {
     /// the content the warning was about: after another copy the old warning must not erase the new content.
     /// Not idempotent: each "Not a secret" press adds one false positive.
     @MainActor
-    static func handle(actionIdentifier: String, dayKey: String?, changeCount: Int?) {
+    static func handle(actionIdentifier: String, dayKey: String?, changeCount: Int?, launchID: String?) {
         switch actionIdentifier {
         case clearClipboardActionIdentifier:
-            guard let changeCount, NSPasteboard.general.changeCount == changeCount else {
+            guard launchID == Self.launchID, let changeCount, NSPasteboard.general.changeCount == changeCount else {
                 return
             }
             NSPasteboard.general.clearContents()

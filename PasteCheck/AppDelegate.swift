@@ -28,8 +28,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let userInfo = response.notification.request.content.userInfo
         let dayKey = userInfo[WarningNotifier.dayKeyUserInfoKey] as? String
         let changeCount = userInfo[WarningNotifier.changeCountUserInfoKey] as? Int
+        let launchID = userInfo[WarningNotifier.launchIDUserInfoKey] as? String
         await MainActor.run {
-            WarningNotifier.handle(actionIdentifier: actionIdentifier, dayKey: dayKey, changeCount: changeCount)
+            WarningNotifier.handle(
+                actionIdentifier: actionIdentifier,
+                dayKey: dayKey,
+                changeCount: changeCount,
+                launchID: launchID
+            )
         }
     }
 }
