@@ -28,8 +28,20 @@ private func finding(kind: SecretKind, line: Int, column: Int, length: Int) -> F
     let findings = [finding(kind: .githubToken, line: 3, column: 5, length: 40)]
 
     #expect(
-        WarningMessage.body(findings: findings, frontmostAppName: "Terminal")
+        WarningMessage.body(findings: findings, inspectedContent: .text, frontmostAppName: "Terminal")
             == "Line 3, column 5, 40 characters, while Terminal was in front. PasteCheck did not change the clipboard."
+    )
+}
+
+@Test func bodyForImageHasNoLineOrColumn() {
+    let findings = [
+        finding(kind: .awsAccessKeyID, line: 2, column: 7, length: 20),
+        finding(kind: .githubToken, line: 4, column: 1, length: 40),
+    ]
+
+    #expect(
+        WarningMessage.body(findings: findings, inspectedContent: .image, frontmostAppName: "Preview")
+            == "In the copied image (and 1 more match), while Preview was in front. PasteCheck did not change the clipboard."
     )
 }
 
@@ -40,7 +52,7 @@ private func finding(kind: SecretKind, line: Int, column: Int, length: Int) -> F
     ]
 
     #expect(
-        WarningMessage.body(findings: findings, frontmostAppName: nil)
+        WarningMessage.body(findings: findings, inspectedContent: .text, frontmostAppName: nil)
             == "Line 1, column 1, 40 characters (and 1 more match). PasteCheck did not change the clipboard."
     )
 }
