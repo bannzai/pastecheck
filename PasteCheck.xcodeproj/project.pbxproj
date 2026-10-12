@@ -10,6 +10,11 @@
 		8F38B667ED2654CC555F8415 /* PasteCheckCore in Frameworks */ = {isa = PBXBuildFile; productRef = B72F8D5D8A46847AE376BF08 /* PasteCheckCore */; };
 		9CB3A4C3C82C0D365B93BD02 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 319403B349EE70D204A4965B /* Assets.xcassets */; };
 		A7DFA8730D8D9E6A7FD1DFA8 /* PasteCheckApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C48B578AA7A3360F5BCF08EF /* PasteCheckApp.swift */; };
+		1B6C2E0A4D7F81A3C5E90B21 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B6C2E0A4D7F81A3C5E90B11 /* AppDelegate.swift */; };
+		2C7D3F1B5E8092B4D6FA1C32 /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7D3F1B5E8092B4D6FA1C22 /* ClipboardMonitor.swift */; };
+		3D8E402C6F91A3C5E70B2D43 /* MenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8E402C6F91A3C5E70B2D33 /* MenuContent.swift */; };
+		4E9F513D70A2B4D6F81C3E54 /* WarningCountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E9F513D70A2B4D6F81C3E44 /* WarningCountStore.swift */; };
+		5FA0624E81B3C5E7092D4F65 /* WarningNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA0624E81B3C5E7092D4F55 /* WarningNotifier.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +24,11 @@
 		6A742B00296CEB1614415A07 /* PasteCheck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PasteCheck.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C005EC14B47EA72D254740BA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C48B578AA7A3360F5BCF08EF /* PasteCheckApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteCheckApp.swift; sourceTree = "<group>"; };
+		1B6C2E0A4D7F81A3C5E90B11 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		2C7D3F1B5E8092B4D6FA1C22 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
+		3D8E402C6F91A3C5E70B2D33 /* MenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContent.swift; sourceTree = "<group>"; };
+		4E9F513D70A2B4D6F81C3E44 /* WarningCountStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningCountStore.swift; sourceTree = "<group>"; };
+		5FA0624E81B3C5E7092D4F55 /* WarningNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningNotifier.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,10 +54,15 @@
 		C28CAAB69EC40F31EF1BDEB1 /* PasteCheck */ = {
 			isa = PBXGroup;
 			children = (
+				1B6C2E0A4D7F81A3C5E90B11 /* AppDelegate.swift */,
 				319403B349EE70D204A4965B /* Assets.xcassets */,
+				2C7D3F1B5E8092B4D6FA1C22 /* ClipboardMonitor.swift */,
 				C005EC14B47EA72D254740BA /* Info.plist */,
+				3D8E402C6F91A3C5E70B2D33 /* MenuContent.swift */,
 				6801069845F5282224C6EF26 /* PasteCheck.entitlements */,
 				C48B578AA7A3360F5BCF08EF /* PasteCheckApp.swift */,
+				4E9F513D70A2B4D6F81C3E44 /* WarningCountStore.swift */,
+				5FA0624E81B3C5E7092D4F55 /* WarningNotifier.swift */,
 			);
 			path = PasteCheck;
 			sourceTree = "<group>";
@@ -144,7 +159,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1B6C2E0A4D7F81A3C5E90B21 /* AppDelegate.swift in Sources */,
+				2C7D3F1B5E8092B4D6FA1C32 /* ClipboardMonitor.swift in Sources */,
+				3D8E402C6F91A3C5E70B2D43 /* MenuContent.swift in Sources */,
 				A7DFA8730D8D9E6A7FD1DFA8 /* PasteCheckApp.swift in Sources */,
+				4E9F513D70A2B4D6F81C3E54 /* WarningCountStore.swift in Sources */,
+				5FA0624E81B3C5E7092D4F65 /* WarningNotifier.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
