@@ -32,7 +32,7 @@ The MVP (the list bannzai settled in the build decision as "both (build on the w
 - [x] Detecting clipboard changes and checking text against patterns (AWS, GitHub, OpenAI, and Slack keys, JWT, PEM private keys, card numbers, `.env` format)
 - [x] A notification on detection (type and position only, no value). Keeping per-date counts on the device of the warnings shown and of the false positives recorded with "Not a secret" in the notification (the measurement source of the decision criteria and the menu's "Today's warnings")
 - [ ] Matching against the actual values of secrets stored in SecChain (warns reliably, regardless of format, only when one of your own secrets is copied. The matching path that keeps values out of PasteCheck is designed in a child issue, and if SecChain needs changes, those are a prerequisite)
-- [ ] OCR inspection of images (Vision)
+- [x] OCR inspection of images (Vision)
 - [ ] Menu bar settings (pause, on/off per type, launch at login) and first-launch guidance (clipboard access permission, notification permission, SecChain integration)
 - [ ] Links to contact, the privacy policy, and the terms of use
 - [ ] App icon
@@ -71,6 +71,8 @@ Candidates (not in the MVP. Whether to add them is decided on a decision date or
 | 2026-10-11 | Build decision | Put a "Clear clipboard" action in the warning notification. It rewrites the clipboard only when the user explicitly presses it, so it does not violate invariant 2 (no rewriting by default). It never clears automatically | agent |
 | 2026-10-12 | Switching to English | Strings that tools match keep their Japanese text: the section headings of this document (castle's product-loop `decide.sh` finds the decision criteria table by the exact heading `## 判定基準`), the `## 人間が確認` heading in `.github/pull_request_template.md` (PR bodies are written in Japanese per `AGENTS.md` "Language", and `human-verification-check.yml` and the auto-merge scripts match this heading), and the generated `ai-review-config` block in `AGENTS.md` (regenerated from a template, not edited by hand) | agent |
 | 2026-10-12 | Clipboard monitoring (#7) | When the clipboard access behavior (macOS 15.4 and later) is `.ask` or `.alwaysDeny`, do not read the clipboard, and show in the menu bar icon and menu that access is needed. If Apple's documentation holds (https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum , on `default`: "Once programmatic pasteboard access triggers the first pasteboard access alert, the state automatically changes to `.ask`"), inspection stops until the user always allows access in System Settings. Not showing the confirmation alert on every change took priority (to revert, change the check in `PasteCheck/ClipboardMonitor.swift`) | agent |
+| 2026-10-12 | Image OCR (#9) | When the clipboard holds both text and an image, inspect only the text, and run OCR only when there is no text. One copy then gives at most one warning instead of two for the same key. The cost is that an image copied together with some text is not OCR'd. Which apps put both on the clipboard, and whether a screenshot comes with no text, is unverified (to revert, change `inspectIfChanged()` in `PasteCheck/ClipboardMonitor.swift`) | agent |
+| 2026-10-12 | Image OCR (#9) | The "Text inside images (OCR)" switch is the `UserDefaults` key `detectsTextInImages`, on when unset (OCR is an MVP feature, and the switch is for turning it off). The menu row that changes it is left to the menu bar settings issue (#10) | agent |
 
 ## agent に任せること
 
