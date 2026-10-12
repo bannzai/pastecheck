@@ -3,12 +3,12 @@ paths:
   - "**/*.swift"
 ---
 
-# Swift コーディング規約
+# Swift coding conventions
 
-- `///` doc comment で設計意図 (なぜ・制約) を書く。処理内容の説明 (何をしているか) は書かない
-- 副作用のあるコンポーネント (NSPasteboard の読み取り、通知、ファイルシステム、UI 状態) と純粋ロジック (`enum` + `static func`、または値型) を分離し、純粋ロジックを `PasteCheckCore` に置いてユニットテストの対象にする
-- 1 ファイル 1 責務。テストファイルは対応するファイルと同じ名前にする (`Xxx.swift` ⇔ `XxxTests.swift`)
-- カスタム `Error` は `CustomStringConvertible` を実装し、エラーメッセージは加工せずそのまま表示する
-- 関数は冪等にする。冪等にできない場合は理由をコメントで明記する
-- ユニットテストは Swift Testing を使う
-- `if` / `guard` / `for` / `while` / `defer` / `Task` など文としての `{ }` ブロックを 1 行で書かない (複数行に展開する)。単一式の computed property や `items.map { $0.name }` のような式クロージャは対象外
+- Write the design intent (why, constraints) in `///` doc comments. Do not describe what the code does
+- Separate components with side effects (reading NSPasteboard, notifications, the file system, UI state) from pure logic (`enum` + `static func`, or value types), and put the pure logic in `PasteCheckCore` as the target of unit tests
+- One responsibility per file. Name a test file after the file it tests (`Xxx.swift` ⇔ `XxxTests.swift`)
+- Custom `Error` types implement `CustomStringConvertible`, and error messages are shown as is without modification
+- Make functions idempotent. When a function cannot be idempotent, state the reason in a comment
+- Use Swift Testing for unit tests
+- Do not write the `{ }` block of a statement such as `if` / `guard` / `for` / `while` / `defer` / `Task` on one line (expand it over multiple lines). Single-expression computed properties and expression closures such as `items.map { $0.name }` are exempt

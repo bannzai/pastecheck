@@ -1,50 +1,50 @@
 # AGENTS.md
 
-## 言語
+## Language
 
-- コードのコメント・リポジトリに入る文書 (README・`documents/`・`docs/`・rules)・UI 文言は英語で書く (MIT ライセンス (`LICENSE`) で公開する開発者向けツールのため。決定: `documents/DIRECTION.md`「決めたこと」2026-10-11)。既存の日本語の文書・コメントは、英語へ切り替える子 issue (https://github.com/bannzai/pastecheck/issues/8) で一括して直す。それまでの間、新しいファイルは英語で書き、既存の日本語のファイルへの追記はそのファイルの言語 (日本語) に合わせて、1 つのファイルの中で日英を混ぜない
-- ユーザーとの会話、issue・PR の本文、GitHub 上のコメントは日本語
+- Code comments, documents that go into the repository (README, `documents/`, `docs/`, rules), and UI text are written in English (because this is a developer tool published under the MIT license (`LICENSE`). Decision: `documents/DIRECTION.md` "decisions" 2026-10-11). Existing Japanese documents and comments are fixed all at once in the child issue for switching to English (https://github.com/bannzai/pastecheck/issues/8). Until then, write new files in English, write additions to existing Japanese files in that file's language (Japanese), and do not mix Japanese and English within one file
+- Conversations with the user, issue and PR bodies, and comments on GitHub are in Japanese
 
-## 要件と設計判断
+## Requirements and design decisions
 
-- `documents/DIRECTION.md` が仮説・判定基準・必要な機能・決めたことの SSOT。ここに無い問いは agent が可逆な方を選んで同文書の「決めたこと」に記録する
-- `documents/PROJECT.md` が要件・不変条件 (クリップボードの中身をアプリの外に出さない) の SSOT。検出ロジック・通知・権限に触れる前に読む
-- 設計の決定は `documents/adr/` に残す
+- `documents/DIRECTION.md` is the source of truth for the hypothesis, decision criteria, required features, and decisions made. For questions not covered there, the agent picks the reversible option and records it in that document's "decisions" table
+- `documents/PROJECT.md` is the source of truth for the requirements and invariants (never let clipboard contents leave the app). Read it before touching the detection logic, notifications, or permissions
+- Record design decisions in `documents/adr/`
 
-## 検証方法
+## Verification
 
-ビルド・テスト・画面の動作確認・公開サイトの表示確認は、**このマシンではなく外部のマシンで行う** (このリポジトリは public なので GitHub-hosted の macOS runner が無料で使え、ローカルの Mac の負荷を避けるため)。ローカルで実行してよいのは `make test` (小さな SwiftPM パッケージのテスト) と `make -n` による Makefile の確認だけで、`xcodebuild build` / `xcodebuild test` / `make build-macos` / `make macos` はローカルで実行しない。
+Builds, tests, checking app screens, and checking the public site are done **on external machines, not on this machine** (this repository is public, so GitHub-hosted macOS runners are free, and it avoids load on the local Mac). The only things allowed to run locally are `make test` (the tests of a small SwiftPM package) and checking the Makefile with `make -n`; do not run `xcodebuild build` / `xcodebuild test` / `make build-macos` / `make macos` locally.
 
-| コマンド | 内容 | 実行する場所 |
+| Command | What it does | Where it runs |
 | --- | --- | --- |
-| `make build-macos` | macOS アプリのビルド (`-derivedDataPath tmp/DerivedData`) | PR の CI (`.github/workflows/ci.yml`、`macos-26` runner)。push して `gh pr checks <PR番号> --watch` で結果を見る。失敗は `gh run view <run ID> --log-failed` でログを読む |
-| `make test` | `PasteCheckCore` のユニットテスト (`swift test`)。検出ルールの純粋ロジックはここに置く | CI。ローカルでも可 (数秒で終わる) |
-| `make macos` | Release ビルドを `/Applications/PasteCheck.app` に配置する | ユーザーが手元で普段使いする時だけ |
-| `make macos-debug` | Debug ビルドを同じ場所に上書き配置する (Debug にしか無い操作を使う時だけ。終わったら `make macos` で戻す) | 同上 |
+| `make build-macos` | Builds the macOS app (`-derivedDataPath tmp/DerivedData`) | The PR's CI (`.github/workflows/ci.yml`, `macos-26` runner). Push and watch the result with `gh pr checks <PR number> --watch`. For failures, read the log with `gh run view <run ID> --log-failed` |
+| `make test` | Unit tests of `PasteCheckCore` (`swift test`). The pure logic of the detection rules lives here | CI. Also fine locally (finishes in seconds) |
+| `make macos` | Installs a Release build to `/Applications/PasteCheck.app` | Only when the user uses it day to day on their own machine |
+| `make macos-debug` | Overwrites the same location with a Debug build (only when using operations that exist only in Debug. Afterwards, go back with `make macos`) | Same as above |
 
-### 画面の確認 (simtunnel)
+### Checking screens (simtunnel)
 
-- アプリの画面と挙動は simtunnel で確認する: GitHub Actions の macOS runner のデスクトップでアプリを起動し、WebDriverAgentMac 経由でローカルから操作・スクリーンショット取得する。ローカルでアプリを起動するのは既定ではない。issue や手順書に `make macos` などローカル前提の記述があっても、それ自体はローカルで動かす理由にならない
-- 先に branch を push する。セッションは `--ref` の branch の push 済み tip をビルドする (`--ref` 無しは `main`)
-- 起動: `SIMTUNNEL_REPO=bannzai/pastecheck SIMTUNNEL_WORKFLOW=macos-app-session.yml ~/ghq/github.com/bannzai/simtunnel/local/simtunnel up <session> --ref <branch> --wait` (`.github/workflows/macos-app-session.yml` が動く)。操作と撮影は `/macos-simtunnel` skill の `scripts/macos-wda.sh` で行い、画面の状態は必ずスクリーンショットを Read して判断する
-- セッション名は `pastecheck-<worktree>-mac` にする。tailnet のホスト名になるため、他リポジトリのセッションと衝突させない
-- 終わったら `up` と同じ環境変数で `simtunnel down <session>` する (macOS runner は CI と共有)
-- 前提: Secrets `TS_OIDC_CLIENT_ID` / `TS_OIDC_AUDIENCE` が登録されていること (`gh secret list -R bannzai/pastecheck`)。未登録の間はセッションが OIDC 認証で失敗する。登録はユーザー作業 (「ユーザー作業の一覧」issue)
-- runner には署名 identity が無いため、プロジェクトは全 configuration で ad-hoc 署名 (`CODE_SIGN_IDENTITY = -`) にしている。配布用の Developer ID 署名は release workflow だけで使う (`documents/PROJECT.md`「技術スタック・インフラの決定」の署名の行)
-- ローカルで起動してよいのは、WebDriverAgent の操作 (click・入力・スクリーンショット) では確認が成立しない場合 (例: Cmd+V の割り込みに Accessibility の許可が要り、runner では許可ダイアログに答えられない) と、`/ios-simulator` skill Phase 1 の運用上の条件 (未 push の変更、tailnet 未接続、runner の並列上限等) に当たる場合だけ。理由を完了報告に書く
-- クリップボードに入れる検証用の値は `.claude/rules/clipboard-content-handling.md` に従い、明らかに偽の値にする
+- Check the app's screens and behavior with simtunnel: launch the app on the desktop of a GitHub Actions macOS runner, and operate it and take screenshots from the local machine via WebDriverAgentMac. Launching the app locally is not the default. Even if an issue or a procedure has local-oriented steps such as `make macos`, that alone is not a reason to run locally
+- Push the branch first. The session builds the pushed tip of the `--ref` branch (`main` without `--ref`)
+- Start: `SIMTUNNEL_REPO=bannzai/pastecheck SIMTUNNEL_WORKFLOW=macos-app-session.yml ~/ghq/github.com/bannzai/simtunnel/local/simtunnel up <session> --ref <branch> --wait` (runs `.github/workflows/macos-app-session.yml`). Operate and capture with `scripts/macos-wda.sh` of the `/macos-simtunnel` skill, and always judge the screen state by Reading the screenshot
+- Name the session `pastecheck-<worktree>-mac`. It becomes the tailnet hostname, so do not collide with sessions of other repositories
+- When done, run `simtunnel down <session>` with the same environment variables as `up` (the macOS runners are shared with CI)
+- Prerequisite: the Secrets `TS_OIDC_CLIENT_ID` / `TS_OIDC_AUDIENCE` are registered (`gh secret list -R bannzai/pastecheck`). While they are not registered, sessions fail at OIDC authentication. Registering them is user work (the "list of user tasks" issue)
+- The runners have no signing identity, so the project uses ad-hoc signing (`CODE_SIGN_IDENTITY = -`) in every configuration. Developer ID signing for distribution is used only in the release workflow (the signing row of `documents/PROJECT.md` "Technology stack and infrastructure decisions")
+- Launching locally is allowed only when the check cannot be done with WebDriverAgent operations (click, input, screenshot) (for example, intercepting Cmd+V needs the Accessibility permission, and on a runner the permission dialog cannot be answered), and when the operational conditions of the `/ios-simulator` skill Phase 1 apply (unpushed changes, not connected to the tailnet, the runner concurrency limit, and so on). Write the reason in the completion report
+- Values put on the clipboard for verification follow `.claude/rules/clipboard-content-handling.md` and must be obviously fake
 
-### 公開サイトの確認 (webtunnel)
+### Checking the public site (webtunnel)
 
-- `docs/` (LP・プライバシーポリシー・利用規約・サポート) の表示は webtunnel で確認する: GitHub Actions の Linux runner で `docs/` を配信し、runner 上の Chromium にローカルの agent-browser から CDP 接続する。ローカルのブラウザを既定にしない
-- 起動: `WEBTUNNEL_REPO=bannzai/pastecheck ~/ghq/github.com/bannzai/webtunnel/local/webtunnel up <session> --ref <branch> --wait` (`.github/workflows/browser-session.yml` が動く)。接続先の IP は `local/webtunnel cdp <session>`、操作は `/webtunnel` skill に従う。セッション名は `pastecheck-<worktree>-web`
-- webtunnel で見られるのは `index.html` (静的ファイル) だけ。法務ページ (`privacy.md` 等) は GitHub Pages の Jekyll が HTML にするため、runner の `http.server` では 404 になる。法務ページは main にマージした後に公開 URL で確認する
-- 公開後 (main にマージ後) の URL は https://bannzai.github.io/pastecheck/ で、公開 URL の確認は `/landing-page-builder` skill の `verify-lp.sh` と `curl` で行う
+- Check how `docs/` (introduction page, privacy policy, terms of use, support) is displayed with webtunnel: serve `docs/` on a GitHub Actions Linux runner and connect to the runner's Chromium over CDP from the local agent-browser. Do not default to a local browser
+- Start: `WEBTUNNEL_REPO=bannzai/pastecheck ~/ghq/github.com/bannzai/webtunnel/local/webtunnel up <session> --ref <branch> --wait` (runs `.github/workflows/browser-session.yml`). Get the IP to connect to with `local/webtunnel cdp <session>`, and operate it according to the `/webtunnel` skill. Name the session `pastecheck-<worktree>-web`
+- webtunnel can show only `index.html` (a static file). The legal pages (`privacy.md` and so on) are turned into HTML by GitHub Pages' Jekyll, so they are 404 on the runner's `http.server`. Check the legal pages at the public URL after merging into main
+- The public URL (after merging into main) is https://bannzai.github.io/pastecheck/ , and check the public URL with `verify-lp.sh` of the `/landing-page-builder` skill and `curl`
 
-## Xcode プロジェクト
+## Xcode project
 
-- `PasteCheck.xcodeproj` がプロジェクト構成の唯一の正。変更は Xcode の GUI か `project.pbxproj` の直接編集で行う
-- `xcodegen generate` を実行しない。`project.yml` をリポジトリに置かない。機械検査は `~/.agents/skills/create-new-app/scripts/check-setup.sh` の `xcode-project-source` 項目
+- `PasteCheck.xcodeproj` is the only source of truth for the project configuration. Change it through the Xcode GUI or by editing `project.pbxproj` directly
+- Do not run `xcodegen generate`. Do not put `project.yml` in the repository. The machine check is the `xcode-project-source` item of `~/.agents/skills/create-new-app/scripts/check-setup.sh`
 
 <!-- ai-review-config begin -->
 <!--
