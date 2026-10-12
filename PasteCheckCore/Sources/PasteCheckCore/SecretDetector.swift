@@ -21,7 +21,7 @@ import Foundation
 ///   characters with no whitespace that contains both a letter and a digit. Random tokens (hex, base62, base64)
 ///   always mix letters and digits, while paths like `PATH=/usr/bin:/bin` and plain words do not. A symbol is
 ///   not required because hex and base62 tokens have none. A trailing ` # comment` after the value is allowed, as
-///   `.env` files commonly annotate values that way.
+///   `.env` files commonly annotate values that way. A URL value is skipped unless it carries credentials (`@`).
 public enum SecretDetector {
     /// Returns every match of every rule in `text`, sorted by position (ties are broken by `SecretKind` order).
     /// Overlapping matches of different kinds are all reported; the caller decides how to summarize them.
@@ -94,9 +94,15 @@ public enum SecretDetector {
             // Inside quotes `#` is part of the value; unquoted, it starts a comment.
             return text.matches(of: /^[ \t]*(?:#[ \t]*)?(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=(?:"([^\s"]{20,})"|'([^\s']{20,})'|([^\s"'#]{20,}))(?:[ \t]+#[^\r\n]*)?[ \t]*$/.anchorsMatchLineEndings())
                 .compactMap { $0.output.1 ?? $0.output.2 ?? $0.output.3 }
-                .filter { containsLetterAndDigit(value: $0) }
+                .filter { containsLetterAndDigit(value: $0) && !isURLWithoutCredentials(value: $0) }
                 .map { $0.startIndex..<$0.endIndex }
         }
+    }
+
+    /// Whether `value` is a URL (`scheme://...`) with no `@`. Endpoint settings such as
+    /// `API_URL=https://api.example.com/v2` are not secrets, while a URL with `user:password@` in it is one.
+    static func isURLWithoutCredentials(value: Substring) -> Bool {
+        value.prefixMatch(of: /[A-Za-z][A-Za-z0-9+.-]*:\/\//) != nil && !value.contains("@")
     }
 
     /// Whether `value` has at least one letter and one digit, the shape of a random token rather than a word or path.

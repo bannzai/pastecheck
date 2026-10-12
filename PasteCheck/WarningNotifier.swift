@@ -39,6 +39,9 @@ enum WarningNotifier {
     /// Shows one warning for the clipboard content at `changeCount`.
     /// - Returns: Whether the system accepted the notification. It is `false` when notifications are off for PasteCheck
     ///   (`UNError.notificationsNotAllowed`), in which case no warning was shown and the caller must not count one.
+    ///   Source: https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed
+    ///   ("This error occurs when you try to submit a notification request and your app or app extension isn't
+    ///   authorized to schedule notifications").
     @MainActor
     static func post(findings: [Finding], frontmostAppName: String?, dayKey: String, changeCount: Int) async -> Bool {
         let content = UNMutableNotificationContent()

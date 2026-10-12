@@ -183,6 +183,11 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     #expect(findings.first?.length == 24)
 }
 
+@Test func ignoresURLValueButDetectsURLWithCredentials() {
+    #expect(kinds(text: "NEXT_PUBLIC_API_URL=https://api.example.com/v2").isEmpty)
+    #expect(kinds(text: "DATABASE_URL=postgres://dummy:" + "dummyPassword123@db.example.com/app") == [.envAssignment])
+}
+
 @Test func ignoresPathLowercaseKeyAndShortValue() {
     #expect(kinds(text: "PATH=/usr/local/bin:/usr/bin:/bin:/sbin").isEmpty)
     #expect(kinds(text: "api_token=" + "dummyValue1234567890abc").isEmpty)
