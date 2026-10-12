@@ -20,7 +20,7 @@ AI チャット・Slack・GitHub にターミナルの出力やスクリーン�
 | 指標 | 計測元 (skill / コマンド) | 継続のしきい値 | 打ち切り条件 | 転換の条件 |
 | --- | --- | --- | --- | --- |
 | 累計ダウンロード数 (GitHub Releases) | `gh api repos/bannzai/pastecheck/releases --jq '[.[].assets[].download_count] \| add'` | 公開 4 週で 100 以上 | 公開 8 週で 100 未満が 2 回連続の判定日で続く | ダウンロードは伸びるが issue・star が 0 なら、配布経路 (Homebrew 公式 cask・App Store) の転換 |
-| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (値は日付と件数だけで中身は持たない。読むコマンドは未確認: サンドボックス有効のアプリの `UserDefaults` はコンテナ `~/Library/Containers/com.bannzai.PasteCheck/Data/Library/Preferences/com.bannzai.PasteCheck.plist` に書かれる想定で、`defaults read` でそのパスを読めるかを実装する子 issue https://github.com/bannzai/pastecheck/issues/7 で確かめてこの行を直す) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が 1 件以上あり、かつ有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み。SecChain の実値との照合は MVP に入ったため、転換では既定を照合だけに寄せる) |
+| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (値は日付と件数だけで中身は持たない。キーは `warningCountsByDay` と `falsePositiveCountsByDay` で、どちらも日付 `yyyy-MM-dd` から件数への辞書。定義は `PasteCheck/WarningCountStore.swift`。読むコマンドは `defaults read ~/Library/Containers/com.bannzai.PasteCheck/Data/Library/Preferences/com.bannzai.PasteCheck.plist warningCountsByDay` と、同じパスの `falsePositiveCountsByDay`。根拠: `man defaults` は「Domains may also be specified as a path to an arbitrary plist file」と書き、例に TextEdit のコンテナの plist のパスを挙げている。2026-10-12 にこの Mac で別のサンドボックス有効のアプリのコンテナの plist のパスを `defaults read` に渡すと、権限のエラーにならずその plist の domain として解決された (存在しないキーを指定して「Could not find key ... in domain」が返った)。PasteCheck 自身の plist を読めるかは、アプリが一度警告を出すまでファイルが無いため未確認) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が 1 件以上あり、かつ有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み。SecChain の実値との照合は MVP に入ったため、転換では既定を照合だけに寄せる) |
 | GitHub の star と他者の issue (利用者の反応) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`、`gh issue list -R bannzai/pastecheck --search '-author:bannzai' --json number --jq length` | 公開 8 週で star 10 以上または他者の issue 1 件以上 | 公開 12 週で star 0 かつ他者の issue 0 | 無し |
 
 ## 必要な機能
@@ -67,6 +67,7 @@ MVP (作るかの判断で bannzai が「両方 (警告だけ型を土台に、�
 | 2026-10-11 | 作るかの判断 | ロードマップの弾の分け方: 土台 (検出ルールとクリップボードの監視・通知、英語への切り替え) → 土台に依存する機能 (OCR、メニューバーの設定と初回起動の案内、アプリアイコン、SecChain との照合) → 配布 (署名・公証・Releases・tap) | agent |
 | 2026-10-11 | 作るかの判断 | 不変条件 1 (クリップボードの中身をアプリの外に出さない) に唯一の例外を認める: 同じ Mac 上の SecChain の照合の機能へ、照合のためだけに、引数ではなく標準入力か XPC で、署名 (Team ID と bundle ID) を確かめた上でテキストを渡し、受け取るのは一致した秘密の名前だけにする (`PROJECT.md` 不変条件 1 と `.claude/rules/clipboard-content-handling.md`) | agent (SecChain の実値照合を MVP に含める bannzai の決定を実現する唯一の経路として) |
 | 2026-10-11 | 作るかの判断 | 警告の通知に「クリップボードを空にする」操作を置く。利用者が明示的に押した時だけ書き換えるため、不変条件 2 (既定で書き換えない) に反しない。自動では空にしない | agent |
+| 2026-10-12 | クリップボードの監視 (#7) | クリップボードのアクセス制御 (macOS 15.4 以降) が `.ask` か `.alwaysDeny` の時は読み取らず、メニューバーのアイコンとメニューで許可が要ることを示す。Apple の文書 (https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum の `default` の説明「Once programmatic pasteboard access triggers the first pasteboard access alert, the state automatically changes to `.ask`」) のとおりなら、利用者が System Settings で常に許可するまで検査は止まる。確認ダイアログを変更のたびに出さないことを優先した (戻すなら `PasteCheck/ClipboardMonitor.swift` の判定を変える) | agent |
 
 ## agent に任せること
 
