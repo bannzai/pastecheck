@@ -25,9 +25,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         didReceive response: UNNotificationResponse
     ) async {
         let actionIdentifier = response.actionIdentifier
-        let dayKey = response.notification.request.content.userInfo[WarningNotifier.dayKeyUserInfoKey] as? String
+        let userInfo = response.notification.request.content.userInfo
+        let dayKey = userInfo[WarningNotifier.dayKeyUserInfoKey] as? String
+        let changeCount = userInfo[WarningNotifier.changeCountUserInfoKey] as? Int
         await MainActor.run {
-            WarningNotifier.handle(actionIdentifier: actionIdentifier, dayKey: dayKey)
+            WarningNotifier.handle(actionIdentifier: actionIdentifier, dayKey: dayKey, changeCount: changeCount)
         }
     }
 }

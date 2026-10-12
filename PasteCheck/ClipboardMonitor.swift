@@ -72,12 +72,20 @@ final class ClipboardMonitor {
             return
         }
         let dayKey = WarningCounts.dayKey(date: Date(), calendar: .current)
-        WarningNotifier.post(
-            findings: findings,
-            frontmostAppName: NSWorkspace.shared.frontmostApplication?.localizedName,
-            dayKey: dayKey
-        )
-        warningCountsByDay = WarningCountStore.recordWarning(defaults: .standard, dayKey: dayKey)
+        let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
+        let changeCount = lastChangeCount
+        Task {
+            // Only a warning the system accepted counts, because the metric counts warnings the user was shown.
+            guard await WarningNotifier.post(
+                findings: findings,
+                frontmostAppName: frontmostAppName,
+                dayKey: dayKey,
+                changeCount: changeCount
+            ) else {
+                return
+            }
+            warningCountsByDay = WarningCountStore.recordWarning(defaults: .standard, dayKey: dayKey)
+        }
     }
 
     /// Maps the pasteboard access behavior (macOS 15.4+) to whether a read may happen without an alert or denial.

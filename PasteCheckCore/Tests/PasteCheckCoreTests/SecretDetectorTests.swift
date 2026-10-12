@@ -145,6 +145,14 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     #expect(kinds(text: "export API" + "_TOKEN=\"" + "dummyValue1234567890abc\"") == [.envAssignment])
 }
 
+@Test func detectsEnvAssignmentWithTrailingComment() {
+    let findings = SecretDetector.findings(in: "API" + "_TOKEN=" + "dummyValue1234567890abc # production")
+
+    #expect(findings.map(\.kind) == [.envAssignment])
+    #expect(findings.first?.column == 11)
+    #expect(findings.first?.length == 23)
+}
+
 @Test func ignoresPathLowercaseKeyAndShortValue() {
     #expect(kinds(text: "PATH=/usr/local/bin:/usr/bin:/bin:/sbin").isEmpty)
     #expect(kinds(text: "api_token=" + "dummyValue1234567890abc").isEmpty)

@@ -5,13 +5,14 @@ import UserNotifications
 /// Shows the warning notification and carries out its two actions.
 ///
 /// The notification text comes from `WarningMessage` and holds only kinds and positions. The only extra data on the
-/// notification is the day key used to count a "Not a secret" press, never anything from the clipboard
-/// (`documents/PROJECT.md` invariant 1).
+/// notification is the day key used to count a "Not a secret" press and the pasteboard `changeCount` the warning was
+/// about, never anything from the clipboard (`documents/PROJECT.md` invariant 1).
 enum WarningNotifier {
     static let categoryIdentifier = "secretWarning"
     static let clearClipboardActionIdentifier = "clearClipboard"
     static let notASecretActionIdentifier = "notASecret"
     static let dayKeyUserInfoKey = "dayKey"
+    static let changeCountUserInfoKey = "changeCount"
 
     /// Registers the warning's actions and asks for permission to notify. Safe to call on every launch: the system
     /// replaces the categories and only asks the user once.
@@ -35,29 +36,38 @@ enum WarningNotifier {
         }
     }
 
-    /// Shows one warning for one clipboard change.
+    /// Shows one warning for the clipboard content at `changeCount`.
+    /// - Returns: Whether the system accepted the notification. It is `false` when notifications are off for PasteCheck
+    ///   (`UNError.notificationsNotAllowed`), in which case no warning was shown and the caller must not count one.
     @MainActor
-    static func post(findings: [Finding], frontmostAppName: String?, dayKey: String) {
+    static func post(findings: [Finding], frontmostAppName: String?, dayKey: String, changeCount: Int) async -> Bool {
         let content = UNMutableNotificationContent()
         content.title = WarningMessage.title(findings: findings)
         content.body = WarningMessage.body(findings: findings, frontmostAppName: frontmostAppName)
         content.categoryIdentifier = categoryIdentifier
-        content.userInfo = [dayKeyUserInfoKey: dayKey]
+        content.userInfo = [dayKeyUserInfoKey: dayKey, changeCountUserInfoKey: changeCount]
         content.sound = .default
-        // A failure means notifications are off for PasteCheck; there is nothing else to show the warning with.
-        UNUserNotificationCenter.current().add(
-            UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil),
-            withCompletionHandler: nil
-        )
+        do {
+            try await UNUserNotificationCenter.current().add(
+                UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            )
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Carries out the action the user chose on a warning. The clipboard is changed only here, by an explicit
-    /// "Clear clipboard" press, never automatically (`documents/PROJECT.md` invariant 2).
+    /// "Clear clipboard" press, never automatically (`documents/PROJECT.md` invariant 2), and only while it still holds
+    /// the content the warning was about: after another copy the old warning must not erase the new content.
     /// Not idempotent: each "Not a secret" press adds one false positive.
     @MainActor
-    static func handle(actionIdentifier: String, dayKey: String?) {
+    static func handle(actionIdentifier: String, dayKey: String?, changeCount: Int?) {
         switch actionIdentifier {
         case clearClipboardActionIdentifier:
+            guard let changeCount, NSPasteboard.general.changeCount == changeCount else {
+                return
+            }
             NSPasteboard.general.clearContents()
         case notASecretActionIdentifier:
             guard let dayKey else {

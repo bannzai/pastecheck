@@ -20,7 +20,8 @@ import Foundation
 /// - `.env` style `KEY=value`: the key must be upper snake case of 3+ characters, and the value must be 20+
 ///   characters with no whitespace that contains both a letter and a digit. Random tokens (hex, base62, base64)
 ///   always mix letters and digits, while paths like `PATH=/usr/bin:/bin` and plain words do not. A symbol is
-///   not required because hex and base62 tokens have none.
+///   not required because hex and base62 tokens have none. A trailing ` # comment` after the value is allowed, as
+///   `.env` files commonly annotate values that way.
 public enum SecretDetector {
     /// Returns every match of every rule in `text`, sorted by position (ties are broken by `SecretKind` order).
     /// Overlapping matches of different kinds are all reported; the caller decides how to summarize them.
@@ -65,7 +66,7 @@ public enum SecretDetector {
                 .filter { passesLuhn(digits: String($0.output.1.filter(\.isNumber))) }
                 .map { $0.output.1.startIndex..<$0.output.1.endIndex }
         case .envAssignment:
-            return text.matches(of: /^[ \t]*(?:#[ \t]*)?(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=(["']?)([^\s"'#]{20,})\1[ \t]*$/.anchorsMatchLineEndings())
+            return text.matches(of: /^[ \t]*(?:#[ \t]*)?(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=(["']?)([^\s"'#]{20,})\1(?:[ \t]+#[^\r\n]*)?[ \t]*$/.anchorsMatchLineEndings())
                 .filter { containsLetterAndDigit(value: $0.output.2) }
                 .map { $0.output.2.startIndex..<$0.output.2.endIndex }
         }
