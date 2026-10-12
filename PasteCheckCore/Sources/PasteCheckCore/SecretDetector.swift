@@ -6,7 +6,7 @@ import Foundation
 /// (`.claude/rules/clipboard-content-handling.md`).
 ///
 /// Exclusions that keep false positives down, and why:
-/// - Token prefixes (`AKIA`, `ghp_`, `sk-`, `xoxb-`, ...) must not be glued to a preceding or following
+/// - Token prefixes (`AKIA`, `ASIA`, `ghp_`, `sk-`, `xoxb-`, ...) must not be glued to a preceding or following
 ///   identifier character, so a prefix in the middle of a longer word does not count.
 /// - OpenAI: the part after `sk-` must contain both a letter and a digit. Real keys are random base62,
 ///   while kebab-case words such as `sk-learn-...` are letters only.
@@ -48,7 +48,9 @@ public enum SecretDetector {
     static func ranges(kind: SecretKind, text: String) -> [Range<String.Index>] {
         switch kind {
         case .awsAccessKeyID:
-            return text.matches(of: /(?:^|[^A-Za-z0-9])(AKIA[A-Z0-9]{16})(?![A-Za-z0-9])/).map { $0.output.1.startIndex..<$0.output.1.endIndex }
+            // `AKIA` is an access key and `ASIA` a temporary (AWS STS) access key ID, per the AWS IAM User Guide
+            // "Understanding unique ID prefixes": https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html
+            return text.matches(of: /(?:^|[^A-Za-z0-9])(A[KS]IA[A-Z0-9]{16})(?![A-Za-z0-9])/).map { $0.output.1.startIndex..<$0.output.1.endIndex }
         case .githubToken:
             return text.matches(of: /(?:^|[^A-Za-z0-9_])((?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}))(?![A-Za-z0-9_])/).map { $0.output.1.startIndex..<$0.output.1.endIndex }
         case .openAIKey:
@@ -68,9 +70,11 @@ public enum SecretDetector {
             return text.matches(of: /(?:^|[^0-9])([0-9](?:[ -]?[0-9]){12,})(?![0-9])/)
                 .flatMap { cardNumberRanges(digitRun: $0.output.1) }
         case .envAssignment:
-            return text.matches(of: /^[ \t]*(?:#[ \t]*)?(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=(["']?)([^\s"'#]{20,})\1(?:[ \t]+#[^\r\n]*)?[ \t]*$/.anchorsMatchLineEndings())
-                .filter { containsLetterAndDigit(value: $0.output.2) }
-                .map { $0.output.2.startIndex..<$0.output.2.endIndex }
+            // Inside quotes `#` is part of the value; unquoted, it starts a comment.
+            return text.matches(of: /^[ \t]*(?:#[ \t]*)?(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=(?:"([^\s"]{20,})"|'([^\s']{20,})'|([^\s"'#]{20,}))(?:[ \t]+#[^\r\n]*)?[ \t]*$/.anchorsMatchLineEndings())
+                .compactMap { $0.output.1 ?? $0.output.2 ?? $0.output.3 }
+                .filter { containsLetterAndDigit(value: $0) }
+                .map { $0.startIndex..<$0.endIndex }
         }
     }
 

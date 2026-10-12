@@ -26,6 +26,13 @@ private func kinds(text: String) -> [SecretKind] {
     #expect(findings.first?.length == 20)
 }
 
+@Test func detectsTemporaryAWSAccessKeyIDInJSON() {
+    let findings = SecretDetector.findings(in: "{\"AccessKeyId\": \"" + "ASIA" + "IOSFODNN7EXAMPLE\"}")
+
+    #expect(findings.map(\.kind) == [.awsAccessKeyID])
+    #expect(findings.first?.length == 20)
+}
+
 @Test func ignoresAWSPrefixWithTooFewCharactersOrInsideAWord() {
     #expect(kinds(text: "AKIA" + "IOSFODNN7EXAMPL").isEmpty)
     #expect(kinds(text: "X" + awsSampleKeyID).isEmpty)
@@ -166,6 +173,14 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     #expect(findings.map(\.kind) == [.envAssignment])
     #expect(findings.first?.column == 11)
     #expect(findings.first?.length == 23)
+}
+
+@Test func detectsQuotedEnvValueContainingHash() {
+    let findings = SecretDetector.findings(in: "API" + "_TOKEN=\"" + "dummyValue1234567890#abc\"")
+
+    #expect(findings.map(\.kind) == [.envAssignment])
+    #expect(findings.first?.column == 12)
+    #expect(findings.first?.length == 24)
 }
 
 @Test func ignoresPathLowercaseKeyAndShortValue() {
