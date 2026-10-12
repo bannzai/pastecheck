@@ -18,8 +18,29 @@ enum ImageTextRecognizer {
     }
 
     /// The text lines Vision recognized in `imageData` (PNG or TIFF), one per text region, or an empty array when the
-    /// image has no text or cannot be read. Synchronous and slow on a large image, so call it off the main actor.
-    nonisolated static func recognizedLines(imageData: Data) -> [String] {
+    /// image has no text or cannot be read or the calling task is cancelled. Recognition is slow on a large image, so
+    /// it runs off the main actor, and cancelling the calling task cancels the Vision request so a replaced image does
+    /// not keep using the CPU.
+    nonisolated static func recognizedLines(imageData: Data) async -> [String] {
+        let request = CancellableRequest(request: textRecognitionRequest())
+        return await withTaskCancellationHandler {
+            // `.userInitiated`, because the user just copied and is about to paste, so the warning must not wait
+            // behind background work.
+            await Task.detached(priority: .userInitiated) {
+                do {
+                    try VNImageRequestHandler(data: imageData).perform([request.request])
+                } catch {
+                    return []
+                }
+                return (request.request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+            }.value
+        } onCancel: {
+            request.request.cancel()
+        }
+    }
+
+    /// The request configured for reading secrets.
+    nonisolated private static func textRecognitionRequest() -> VNRecognizeTextRequest {
         let request = VNRecognizeTextRequest()
         // The rules need every character of a token right, and `.fast` "returns results faster at the expense of
         // accuracy" (https://developer.apple.com/documentation/vision/vnrequesttextrecognitionlevel/fast ). The cost is
@@ -33,11 +54,15 @@ enum ImageTextRecognizer {
         // Language correction rewrites random strings toward dictionary words, which corrupts exactly the tokens the
         // rules look for.
         request.usesLanguageCorrection = false
-        do {
-            try VNImageRequestHandler(data: imageData).perform([request])
-        } catch {
-            return []
-        }
-        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        return request
     }
+}
+
+/// A Vision request shared between the task that performs it and the cancellation handler that cancels it.
+/// `@unchecked Sendable` because `VNRequest` is not marked `Sendable`; the cancellation handler only calls `cancel()`,
+/// which "cancels the request before it can finish executing"
+/// (https://developer.apple.com/documentation/vision/vnrequest/cancel() ), so it is called while `perform` runs.
+private struct CancellableRequest: @unchecked Sendable {
+    /// The request being performed.
+    let request: VNRecognizeTextRequest
 }

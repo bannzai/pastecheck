@@ -93,13 +93,9 @@ final class ClipboardMonitor {
         guard let imageData else {
             return
         }
-        // Recognition takes long on a large image, so it runs off the main actor and polling goes on meanwhile.
-        // `.userInitiated`, because the user just copied and is about to paste, so the warning must not wait behind
-        // background work.
+        // Polling goes on while the image is recognized off the main actor.
         imageInspectionTask = Task { [weak self] in
-            let lines = await Task.detached(priority: .userInitiated) {
-                ImageTextRecognizer.recognizedLines(imageData: imageData)
-            }.value
+            let lines = await ImageTextRecognizer.recognizedLines(imageData: imageData)
             // A copy made during recognition replaced the image, so this result is dropped.
             guard !Task.isCancelled, NSPasteboard.general.changeCount == changeCount else {
                 return
