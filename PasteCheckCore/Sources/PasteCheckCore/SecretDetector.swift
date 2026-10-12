@@ -65,8 +65,8 @@ public enum SecretDetector {
             // The END line is optional so a copied header alone still warns; when present, the range covers the block.
             return text.matches(of: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----(?:[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----)?/).map { $0.range }
         case .creditCardNumber:
-            return text.matches(of: /(?:^|[^0-9])([2-6][0-9](?:[ -]?[0-9]){11,})(?![0-9])/)
-                .compactMap { cardNumberRange(candidate: $0.output.1) }
+            return text.matches(of: /(?:^|[^0-9])([0-9](?:[ -]?[0-9]){12,})(?![0-9])/)
+                .flatMap { cardNumberRanges(digitRun: $0.output.1) }
         case .envAssignment:
             return text.matches(of: /^[ \t]*(?:#[ \t]*)?(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=(["']?)([^\s"'#]{20,})\1(?:[ \t]+#[^\r\n]*)?[ \t]*$/.anchorsMatchLineEndings())
                 .filter { containsLetterAndDigit(value: $0.output.2) }
@@ -92,11 +92,38 @@ public enum SecretDetector {
         return header["alg"] is String
     }
 
-    /// The longest leading part of `candidate` that is a card number: 13–19 digits that pass the Luhn check and end at
-    /// a separator or at the end of `candidate`. A following field separated by a space, such as the expiry month in
-    /// `4242 4242 4242 4242 12/30`, is therefore not glued onto the number.
+    /// The card numbers in `digitRun`, a run of digits joined by single spaces or hyphens. A number may start at the run's
+    /// start or right after a separator, so a count or ID written before it (`23 4242 4242 4242 4242`) does not hide it.
+    /// After a number is found, the search continues after its end.
+    static func cardNumberRanges(digitRun: Substring) -> [Range<String.Index>] {
+        var cardRanges: [Range<String.Index>] = []
+        var start = digitRun.startIndex
+        while start < digitRun.endIndex {
+            if let cardRange = cardNumberRange(candidate: digitRun[start...]) {
+                cardRanges.append(cardRange)
+                start = cardRange.upperBound
+            } else {
+                start = digitRun.index(after: start)
+            }
+            // Move to the next group start: skip the rest of the current group, then the separator.
+            while start < digitRun.endIndex, start > digitRun.startIndex, digitRun[digitRun.index(before: start)].isNumber {
+                start = digitRun.index(after: start)
+            }
+            while start < digitRun.endIndex, !digitRun[start].isNumber {
+                start = digitRun.index(after: start)
+            }
+        }
+        return cardRanges
+    }
+
+    /// The longest leading part of `candidate` that is a card number: 13–19 digits starting with 2–6 that pass the Luhn
+    /// check and end at a separator or at the end of `candidate`. A following field separated by a space, such as the
+    /// expiry month in `4242 4242 4242 4242 12/30`, is therefore not glued onto the number.
     /// - Returns: `nil` when no such part exists.
     static func cardNumberRange(candidate: Substring) -> Range<String.Index>? {
+        guard let first = candidate.first, ("2"..."6").contains(first) else {
+            return nil
+        }
         var digitCount = 0
         var cardRange: Range<String.Index>?
         for index in candidate.indices where candidate[index].isNumber {

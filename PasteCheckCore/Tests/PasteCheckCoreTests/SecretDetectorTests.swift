@@ -128,6 +128,14 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     #expect(findings.first?.length == 19)
 }
 
+@Test func detectsCardNumberAfterAnotherNumberGroup() {
+    let findings = SecretDetector.findings(in: "23 " + stripeTestCardDigits.joined())
+
+    #expect(findings.map(\.kind) == [.creditCardNumber])
+    #expect(findings.first?.column == 4)
+    #expect(findings.first?.length == 16)
+}
+
 @Test func ignoresCardNumberThatFailsLuhn() {
     #expect(kinds(text: "4242 4242 " + "4242 4241").isEmpty)
 }

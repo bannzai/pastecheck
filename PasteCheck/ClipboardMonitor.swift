@@ -57,11 +57,16 @@ final class ClipboardMonitor {
         guard accessState == .watching, pasteboard.changeCount != lastChangeCount else {
             return
         }
-        lastChangeCount = pasteboard.changeCount
+        let changeCount = pasteboard.changeCount
         let text = pasteboard.string(forType: .string)
         // The first read in the `.default` behavior shows the system alert, after which the behavior becomes `.ask`
         // or whatever the user picked, so it is read again for the menu.
         updateAccessState()
+        // A read the user denied in that alert is left unprocessed, so the content is inspected once access is allowed.
+        guard text != nil || accessState == .watching else {
+            return
+        }
+        lastChangeCount = changeCount
         lastCheckedAt = Date()
         // `nil` also means the clipboard holds no text (an image or files), which is not a permission problem.
         guard let text else {
