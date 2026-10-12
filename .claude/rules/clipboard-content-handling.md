@@ -1,8 +1,8 @@
-# クリップボードの中身はアプリの外に出さない
+# Never let clipboard contents leave the app
 
-PasteCheck はクリップボードに機密情報が入っていないかを検査するアプリで、検査対象のテキスト・画像そのものが機密情報になり得る。不変条件は `documents/PROJECT.md`「不変条件」が SSOT で、本ルールはコードを書く時と動作確認をする時の適用の仕方を定める。
+PasteCheck is an app that checks whether the clipboard contains sensitive information, so the text and images it inspects can themselves be sensitive information. The invariant's source of truth is `documents/PROJECT.md` "Invariants"; this rule defines how to apply it when writing code and when verifying behavior.
 
-- クリップボードの中身 (テキスト・画像・検出した値) を、ログ・標準出力・ファイル・`UserDefaults`・エラーメッセージ・`debugDescription`・テストの失敗メッセージ・スクリーンショットに書かない。警告に表示するのは検出の種類 (例: 「AWS アクセスキー」)・行・列やオフセット・文字数など値を含まない位置情報・一致した SecChain の秘密の名前・検知した時に最前面だったアプリの名前に限る (先頭の数文字のマスク表示も値の一部なので出さない)
-- クリップボードの中身をネットワークへ送らない。検出はすべて端末内で完結させる (検出に外部 API・クラウドの LLM を使う経路を足さない)。別プロセスに渡してよいのは、同じ Mac 上の SecChain の照合の機能に照合のためだけに渡す場合だけで、コマンドの引数ではなく標準入力か XPC のメッセージで渡し、渡す先の署名 (Team ID と bundle ID) を確かめ、渡した結果として受け取るのは一致した秘密の名前だけにする
-- 検出ルール (正規表現等) のテストには、形式だけ本物に似せた明らかに偽の値 (例: 各サービスの公式ドキュメントが載せているサンプル値や `dummy-value-for-test`) を使う。本物の形式に一致する文字列は、秘匿情報の点検 (commit 前の hook・GitHub の secret scanning) に引っかかるため、テストコードの中でも分割して組み立てる。本物の資格情報をテスト・fixture・ログ・issue・PR に貼らない
-- 動作確認でクリップボードに入れる値も同じく偽の値にし、スクリーンショットに検出対象の全文が写らないことを確認する
+- Do not write clipboard contents (text, images, detected values) to logs, standard output, files, `UserDefaults`, error messages, `debugDescription`, test failure messages, or screenshots. A warning shows only the detection type (for example, "AWS access key"), position information that contains no value such as line, column, offset, or length, the names of matched SecChain secrets, and the name of the app that was frontmost at the time of detection (a masked display of the first few characters is also part of the value, so do not show it)
+- Do not send clipboard contents to the network. All detection happens on the device (do not add a path that uses an external API or a cloud LLM for detection). The only case where the contents may be passed to another process is passing them to SecChain's matching feature on the same Mac, only for matching: pass them via standard input or an XPC message rather than as command arguments, check the receiver's signature (Team ID and bundle ID), and receive only the names of matched secrets as the result
+- Tests of detection rules (regular expressions and so on) use obviously fake values that only imitate the real format (for example, sample values published in each service's official documentation, or `dummy-value-for-test`). Strings that match a real format get caught by secret checks (the pre-commit hook, GitHub secret scanning), so assemble them from pieces even inside test code. Do not paste real credentials into tests, fixtures, logs, issues, or PRs
+- Values put on the clipboard during verification must likewise be fake, and confirm that the full text of the detection target does not appear in screenshots

@@ -1,23 +1,24 @@
-# 公開サイト (docs/) を GitHub Actions の Linux runner 上の Chromium で開き、Tailscale 経由でローカルの
-# agent-browser から操作・スクリーンショット取得できるようにする。ローカルの Mac でブラウザを動かさずに
-# LP・法務ドキュメントの表示を確認するための経路 (AGENTS.md「公開サイトの確認」)。実体は webtunnel の
-# reusable workflow (https://github.com/bannzai/webtunnel の PROJECT.md「各アプリ repo での実行」)。
+# Opens the public site (docs/) in Chromium on a GitHub Actions Linux runner so that the local
+# agent-browser can operate it and take screenshots over Tailscale. This is the path for checking how the
+# landing page and legal documents are displayed without running a browser on the local Mac (AGENTS.md
+# "Checking the public site"). The implementation is webtunnel's reusable workflow ("各アプリ repo での実行"
+# in PROJECT.md of https://github.com/bannzai/webtunnel).
 name: browser-session
-# local/webtunnel はこの run-name で run を特定する (session=<名前> で始まる形を維持する)
+# local/webtunnel identifies the run by this run-name (keep the form that starts with session=<name>)
 run-name: "session=${{ inputs.session }} duration=${{ inputs.duration_minutes }}m"
 
 on:
-  # fork からの PR に Tailscale の secrets を渡さないため手動 dispatch だけにする
+  # Manual dispatch only, so that Tailscale secrets are not passed to PRs from forks
   workflow_dispatch:
-    # local/webtunnel の up は session / duration_minutes を常に送り、任意オプションも対応する input に
-    # 送るため、未宣言の input で dispatch が拒否されないように全部を宣言する
+    # local/webtunnel's up always sends session / duration_minutes and also sends optional options to the
+    # matching inputs, so declare all of them to keep the dispatch from being rejected for an undeclared input
     inputs:
       session:
-        description: "セッション名。runner は webtunnel-<session> として tailnet に参加する"
+        description: "Session name. The runner joins the tailnet as webtunnel-<session>"
         required: true
         default: pastecheck-web
       duration_minutes:
-        description: "セッションを維持する分数"
+        description: "Minutes to keep the session open"
         required: true
         default: "60"
       start_url:
@@ -38,11 +39,11 @@ on:
 
 jobs:
   session:
-    # reusable workflow を呼ぶこの job だけが OIDC token を受け取る
+    # Only this job, which calls the reusable workflow, receives the OIDC token
     permissions:
       id-token: write
       contents: read
-    # webtunnel にはリリースタグが無いため main の commit で固定する
+    # webtunnel has no release tags, so pin to a commit on main
     uses: bannzai/webtunnel/.github/workflows/session.yml@7779e49fc4663f2c53a74ff4da55a9ca56b8ceda # main 2026-10-07
     with:
       session: ${{ inputs.session }}
@@ -52,8 +53,8 @@ jobs:
       preview: ${{ inputs.preview }}
       setup_script: ${{ inputs.setup_script }}
       software_webgl: ${{ inputs.software_webgl }}
-      # 公開サイトは静的ファイルだけなので、GitHub Pages と同じ docs/ を Python の http.server で配信する。
-      # 127.0.0.1 に束縛しないと reusable workflow の loopback 検証で失敗する
+      # The public site is static files only, so serve the same docs/ as GitHub Pages with Python's http.server.
+      # Without binding to 127.0.0.1, the reusable workflow's loopback check fails
       start_command: python3 -m http.server "$PORT" --bind 127.0.0.1 --directory docs
       port: "8000"
     secrets:
