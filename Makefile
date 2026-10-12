@@ -1,14 +1,14 @@
 XCODEPROJ := PasteCheck.xcodeproj
 CONFIGURATION := Debug
-# ビルド成果物のパスを固定し、システムの DerivedData を汚さないためリポジトリ内に置く。
+# Keep build products inside the repository to fix their path and avoid cluttering the system DerivedData.
 DERIVED_DATA := tmp/DerivedData
 
-# 引数なしの make は、人が手で動作確認する入口にする。
+# A bare make is the entry point for a person to check behavior by hand.
 .DEFAULT_GOAL := macos
 
 .PHONY: build-macos test clean
 
-# ビルドだけを行う。配置はしない。
+# Build only. Does not install.
 build-macos:
 	xcodebuild -project $(XCODEPROJ) -scheme PasteCheck -configuration $(CONFIGURATION) -derivedDataPath $(DERIVED_DATA) -destination 'generic/platform=macOS' build
 
@@ -18,10 +18,10 @@ test:
 clean:
 	rm -rf $(DERIVED_DATA)
 
-# Release ビルドを /Applications に配置して普段使いできるようにする
-# Release にする理由・/Applications に置く理由・lsregister -f を打つ理由:
+# Install a Release build to /Applications for everyday use
+# Why Release, why /Applications, and why run lsregister -f:
 #   https://github.com/bannzai/PUTS/blob/main/documents/adr/0009-install-release-build-to-applications.md
-# 起動は自動では行わない (ssh 越しの実行を想定)
+# Does not launch the app automatically (assumes it may be run over ssh)
 .PHONY: macos
 INSTALL_APP := /Applications/PasteCheck.app
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
@@ -36,12 +36,12 @@ macos:
 	rm -rf $(INSTALL_APP)
 	ditto 'tmp/DerivedData/Build/Products/Release/PasteCheck.app' $(INSTALL_APP)
 	$(LSREGISTER) -f $(INSTALL_APP)
-	@echo "起動するには: open $(INSTALL_APP)"
+	@echo "To launch: open $(INSTALL_APP)"
 
-# Debug ビルドを Release と同じ /Applications/PasteCheck.app に上書き配置する。
-# Debug ビルドにしか無い操作 (開発者メニュー等) を普段使いのデータに対して行うための一時的な配置で、
-# 終わったら make macos で Release に戻す
-# 起動は自動では行わない (ssh 越しの実行を想定)
+# Overwrite /Applications/PasteCheck.app, the same location as Release, with a Debug build.
+# A temporary install for using Debug-only operations (developer menu and so on) on everyday data;
+# go back to Release with make macos when done
+# Does not launch the app automatically (assumes it may be run over ssh)
 .PHONY: macos-debug
 
 macos-debug:
@@ -54,5 +54,5 @@ macos-debug:
 	rm -rf $(INSTALL_APP)
 	ditto 'tmp/DerivedData/Build/Products/Debug/PasteCheck.app' $(INSTALL_APP)
 	$(LSREGISTER) -f $(INSTALL_APP)
-	@echo "起動するには: open $(INSTALL_APP)"
-	@echo "Release に戻すには: make macos"
+	@echo "To launch: open $(INSTALL_APP)"
+	@echo "To go back to Release: make macos"

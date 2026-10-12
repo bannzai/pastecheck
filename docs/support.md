@@ -1,41 +1,41 @@
 ---
 layout: legal
-title: サポート
-# LP とストアの登録 URL は末尾スラッシュ付きの /support/ を指すため、support.html ではなく
-# ディレクトリの index として公開する
+title: Support
+# The landing page and store registration URLs point to /support/ with a trailing slash, so publish this
+# as a directory index rather than support.html
 permalink: /support/
 ---
 
-# サポート
+# Support
 
-PasteCheck は、クリップボードにコピーしたテキストや画像に機密情報らしき文字列が混じっていないかを Mac の中で検査し、貼り付ける前に警告するメニューバーアプリです。このページでは、よくある質問と提供者への連絡方法を案内します。本アプリは開発中で、このページの機能の説明は最初の公開版に入れる予定の内容です。
+PasteCheck is a menu bar app that checks, inside your Mac, whether the text or images you copied to the clipboard contain strings that look like sensitive information, and warns you before you paste. This page covers frequently asked questions and how to contact the provider. PasteCheck is in development, and the descriptions of features on this page are what is planned for the first public version.
 
-## お問い合わせ
+## Contact
 
-- メール: bannzai.app@gmail.com
-- アプリ内: メニューバーのアイコンをクリックし「お問い合わせ」を選ぶと、上のアドレス宛のメールが開きます
-- 不具合の報告・機能の要望: https://github.com/bannzai/pastecheck/issues
+- Email: bannzai.app@gmail.com
+- In the app: click the menu bar icon and choose "Contact" to open an email addressed to the address above
+- Bug reports and feature requests: https://github.com/bannzai/pastecheck/issues
 
-メールや issue に、検出された値そのもの (API キーやトークンの実物) を書かないでください。検出の種類と、どんな形式の文字列だったかを説明してください。
+Please do not write the detected value itself (the actual API key or token) in emails or issues. Describe the detection type and what format the string had.
 
-## よくある質問
+## Frequently asked questions
 
-### 検出されるべきものが検出されない
+### Something that should be detected is not detected
 
-検出は文字列のパターンに基づく推定で、すべての機密情報を検出できるわけではありません。見逃した形式を上の連絡先にお知らせください (実物の値は書かず、形式だけを説明してください)。
+Detection is an estimate based on string patterns and cannot detect every kind of sensitive information. Please let us know the missed format through the contact above (do not write the actual value; describe only the format).
 
-### 機密情報ではないものが検出される
+### Something that is not sensitive information is detected
 
-誤検出した形式を上の連絡先にお知らせください。検出の種類ごとにオン・オフを切り替えられます。
+Please let us know the falsely detected format through the contact above. You can turn each detection type on or off.
 
-### クリップボードの内容はどこかに送られますか
+### Are clipboard contents sent anywhere?
 
-送られません。検査はすべて Mac の中で行われ、クリップボードの内容がファイルやネットワークに書き出されることはありません。詳しくは[プライバシーポリシー](../privacy/)を参照してください。
+No. All inspection happens inside your Mac, and clipboard contents are never written to files or the network. See the [Privacy Policy](../privacy/) for details.
 
-### データを削除するには
+### How do I delete my data?
 
-PasteCheck のデータは設定だけで、アプリのコンテナフォルダ (`~/Library/Containers/com.bannzai.PasteCheck/`) にあります。アプリを削除した後も残ることがあるため、完全に消す時はこのフォルダを削除してください。
+PasteCheck's only data is its settings, which are in the app's container folder (`~/Library/Containers/com.bannzai.PasteCheck/`). The folder may remain after the app is deleted, so to remove everything, delete this folder.
 
-## プライバシー
+## Privacy
 
-PasteCheck は利用者の情報を収集しません。[プライバシーポリシー](../privacy/)を参照してください。
+PasteCheck does not collect user information. See the [Privacy Policy](../privacy/).

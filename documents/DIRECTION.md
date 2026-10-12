@@ -7,73 +7,76 @@ daily_issue_cap: 3
 launched_at:
 ---
 
-# 方向性: PasteCheck
+# Direction: PasteCheck
+
+<!-- The section headings (## 仮説, ## 判定基準, ## 必要な機能, ## デザインの方向, ## 決めたこと, ## agent に任せること) stay in Japanese: castle's product-loop scripts find sections by these exact headings (decide.sh matches "## 判定基準"). See the 2026-10-12 row of the decisions table. -->
 
 ## 仮説
 
-AI チャット・Slack・GitHub にターミナルの出力やスクリーンショットを貼ることが多い開発者は、貼る前に目で確認するしかなく、API キーやトークンを貼ってしまう。クリップボードにコピーした瞬間に Mac の中で検査して警告すれば、貼る前に気づける。クリップボードを書き換えずに警告だけ出す (貼るかどうかの判断を利用者に残す) ことと、SecChain に保存した自分の秘密の実値がコピーされた時に形式に依らず確実に警告することが、既存の自動マスク型のツールとの違いになる。
+Developers who often paste terminal output or screenshots into AI chats, Slack, or GitHub have no way to check them other than by eye before pasting, and end up pasting API keys or tokens. If the clipboard is inspected inside the Mac the moment something is copied and a warning is shown, they can notice before pasting. What sets it apart from existing auto-masking tools is that it only warns without rewriting the clipboard (leaving the decision to paste to the user), and that it reliably warns, regardless of format, when the actual value of one of the user's own secrets stored in SecChain is copied.
 
 ## 判定基準
 
-最初の配信先は GitHub Releases + Homebrew tap で、計測元はその行にする。Mac App Store 版を出した時に、App Store Connect の数値を取る skill かコマンドを用意した上でその行を足す (castle に取得手段がまだ無い)。
+The first distribution channel is GitHub Releases + a Homebrew tap, and the measurement sources are those rows. When a Mac App Store version ships, add its row after preparing a skill or command that fetches the App Store Connect numbers (castle has no way to fetch them yet).
 
-| 指標 | 計測元 (skill / コマンド) | 継続のしきい値 | 打ち切り条件 | 転換の条件 |
+| Metric | Measurement source (skill / command) | Threshold to continue | Condition to stop | Condition to pivot |
 | --- | --- | --- | --- | --- |
-| 累計ダウンロード数 (GitHub Releases) | `gh api repos/bannzai/pastecheck/releases --jq '[.[].assets[].download_count] \| add'` | 公開 4 週で 100 以上 | 公開 8 週で 100 未満が 2 回連続の判定日で続く | ダウンロードは伸びるが issue・star が 0 なら、配布経路 (Homebrew 公式 cask・App Store) の転換 |
-| 自分の利用で有効だった警告の回数 (誤検出を除く) | アプリが端末内に日付ごとに保持する 2 つの件数、警告を出した回数と、通知の "Not a secret" で利用者が誤検出と記録した回数 (値は日付と件数だけで中身は持たない。キーは `warningCountsByDay` と `falsePositiveCountsByDay` で、どちらも日付 `yyyy-MM-dd` から件数への辞書。定義は `PasteCheck/WarningCountStore.swift`。読むコマンドは `defaults read ~/Library/Containers/com.bannzai.PasteCheck/Data/Library/Preferences/com.bannzai.PasteCheck.plist warningCountsByDay` と、同じパスの `falsePositiveCountsByDay`。根拠: `man defaults` は「Domains may also be specified as a path to an arbitrary plist file」と書き、例に TextEdit のコンテナの plist のパスを挙げている。2026-10-12 にこの Mac で別のサンドボックス有効のアプリのコンテナの plist のパスを `defaults read` に渡すと、権限のエラーにならずその plist の domain として解決された (存在しないキーを指定して「Could not find key ... in domain」が返った)。PasteCheck 自身の plist を読めるかは、アプリが一度警告を出すまでファイルが無いため未確認) を判定日に読み、判定の期間 (直前の判定日から今日まで) の日付の分を足して、有効 = 警告 − 誤検出で求める | 2 週間で 1 回以上 | 4 週間 0 回 (自分でも使わない) | 誤検出が 1 件以上あり、かつ有効な警告の 3 倍以上なら検出ルールの転換 (形式の絞り込み。SecChain の実値との照合は MVP に入ったため、転換では既定を照合だけに寄せる) |
-| GitHub の star と他者の issue (利用者の反応) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`、`gh issue list -R bannzai/pastecheck --search '-author:bannzai' --json number --jq length` | 公開 8 週で star 10 以上または他者の issue 1 件以上 | 公開 12 週で star 0 かつ他者の issue 0 | 無し |
+| Cumulative downloads (GitHub Releases) | `gh api repos/bannzai/pastecheck/releases --jq '[.[].assets[].download_count] \| add'` | 100 or more within 4 weeks of launch | Under 100 at 8 weeks after launch, on 2 consecutive decision dates | If downloads grow but issues and stars stay at 0, pivot the distribution channel (official Homebrew cask, App Store) |
+| Number of useful warnings in my own use (excluding false positives) | Two counts the app keeps per date on the device: the number of warnings shown, and the number of times the user marked a warning as a false positive with "Not a secret" in the notification (the values are only dates and counts, with no content. The keys are `warningCountsByDay` and `falsePositiveCountsByDay`, each a dictionary from a date `yyyy-MM-dd` to a count, defined in `PasteCheck/WarningCountStore.swift`. Read them with `defaults read ~/Library/Containers/com.bannzai.PasteCheck/Data/Library/Preferences/com.bannzai.PasteCheck.plist warningCountsByDay` and the same path with `falsePositiveCountsByDay`. Evidence: `man defaults` says "Domains may also be specified as a path to an arbitrary plist file" and gives a TextEdit container plist path as an example. On 2026-10-12, passing the container plist path of another sandboxed app to `defaults read` on this Mac resolved it as that plist's domain without a permission error (asking for a missing key returned "Could not find key ... in domain"). Whether PasteCheck's own plist can be read is unverified, because the file does not exist until the app has shown a warning). Read them on the decision date, add up the dates in the decision period (from the previous decision date to today), and compute useful = warnings − false positives | 1 or more in 2 weeks | 0 for 4 weeks (I don't use it myself either) | If there is at least 1 false positive and false positives are 3 or more times the useful warnings, pivot the detection rules (narrow the formats. Matching against actual SecChain values is in the MVP, so the pivot makes matching alone the default) |
+| GitHub stars and issues from others (user reaction) | `gh api repos/bannzai/pastecheck --jq .stargazers_count`, `gh issue list -R bannzai/pastecheck --search '-author:bannzai' --json number --jq length` | 10 or more stars, or 1 or more issues from others, within 8 weeks of launch | 0 stars and 0 issues from others at 12 weeks after launch | None |
 
 ## 必要な機能
 
-MVP (作るかの判断で bannzai が「両方 (警告だけ型を土台に、実値照合を MVP に含める)」と決めた一覧。要件の本文は `PROJECT.md`「機能」):
+The MVP (the list bannzai settled in the build decision as "both (build on the warn-only design and include actual-value matching in the MVP)". The requirements text is in `PROJECT.md` "Features"):
 
-- [x] クリップボードの変更検知とテキストのパターン検査 (AWS・GitHub・OpenAI・Slack のキー、JWT、PEM 秘密鍵、カード番号、`.env` 形式)
-- [x] 検出時の通知 (種類と位置だけ。値は出さない)。警告を出した回数と、通知の "Not a secret" で記録した誤検出の回数の、日付ごとの端末内での保持 (判定基準の計測元とメニューの「今日の警告」)
-- [ ] SecChain に保存した秘密の実値との照合 (形式に依らず、自分の秘密そのものがコピーされた時だけ確実に警告する。値を PasteCheck 側に持たない照合の経路は子 issue で設計し、SecChain 側の対応が要る場合はそれを前提にする)
-- [ ] 画像の OCR 検査 (Vision)
-- [ ] メニューバーの設定 (一時停止・種類ごとのオン・オフ・ログイン時の自動起動) と、初回起動時の案内 (クリップボードのアクセス許可・通知の許可・SecChain の連携)
-- [ ] お問い合わせ・プライバシーポリシー・利用規約への導線
-- [ ] アプリアイコン
-- [ ] 配布: Developer ID 署名・公証・GitHub Releases の DMG と自前の Homebrew tap (bannzai/homebrew-tap) の cask。release workflow は公開に進む判断が出るまで `workflow_dispatch` だけで動かす
-- [ ] 文書・コードのコメント・UI 文言を英語にする (OSS として公開するため)
+- [x] Detecting clipboard changes and checking text against patterns (AWS, GitHub, OpenAI, and Slack keys, JWT, PEM private keys, card numbers, `.env` format)
+- [x] A notification on detection (type and position only, no value). Keeping per-date counts on the device of the warnings shown and of the false positives recorded with "Not a secret" in the notification (the measurement source of the decision criteria and the menu's "Today's warnings")
+- [ ] Matching against the actual values of secrets stored in SecChain (warns reliably, regardless of format, only when one of your own secrets is copied. The matching path that keeps values out of PasteCheck is designed in a child issue, and if SecChain needs changes, those are a prerequisite)
+- [ ] OCR inspection of images (Vision)
+- [ ] Menu bar settings (pause, on/off per type, launch at login) and first-launch guidance (clipboard access permission, notification permission, SecChain integration)
+- [ ] Links to contact, the privacy policy, and the terms of use
+- [ ] App icon
+- [ ] Distribution: Developer ID signing, notarization, a DMG on GitHub Releases, and a cask in my own Homebrew tap (bannzai/homebrew-tap). The release workflow runs only via `workflow_dispatch` until the decision to launch is made
+- [ ] Switch documents, code comments, and UI text to English (to publish as OSS)
 
-候補 (MVP に入れない。入れるかは判定日か触れる版の判断で決める):
+Candidates (not in the MVP. Whether to add them is decided on a decision date or in the playable-build decision):
 
-- Cmd+V への割り込み (貼り付けの一時停止・確認ダイアログ)。Accessibility の許可が要り App Sandbox 内で動く一次情報が無いため、入れるなら Releases 版だけの機能にする
-- Mac App Store 版 (Releases 版の公開後。サンドボックス内で成立する機能だけを載せる)
-- 日本語のローカライズ (UI 文言は英語を既定にする)
-- オンデバイス言語モデル (Foundation Models) による文脈の判定
-- クリップボードの自動マスク (オプトイン)
+- Intercepting Cmd+V (pausing the paste, a confirmation dialog). It needs the Accessibility permission and there is no primary source showing it works inside the App Sandbox, so if added it becomes a Releases-only feature
+- A Mac App Store version (after the Releases version ships. It carries only the features that work inside the sandbox)
+- Japanese localization (UI text defaults to English)
+- Context-based judgment with an on-device language model (Foundation Models)
+- Automatic masking of the clipboard (opt-in)
 
 ## デザインの方向
 
-(見た目と体験の方向の判断で決める。モックは `documents/design/mock-2026-10-11/`)
+(Decided in the decision on the direction of look and experience. The mockups are in `documents/design/mock-2026-10-11/`)
 
 ## 決めたこと
 
-| 日付 | 場面 | 決めたこと | 決めた人 |
+| Date | Occasion | Decision | Decided by |
 | --- | --- | --- | --- |
-| 2026-10-10 | 立ち上げ | 文書・コメントの言語は、配信先が決まるまで日本語 (OSS として公開することになったら英語に切り替える) | agent |
-| 2026-10-10 | 立ち上げ | 立ち上げ時の署名は全 configuration で ad-hoc にし、配布用の署名は配信先が決まってから足す | agent |
-| 2026-10-10 | 立ち上げ | 動作確認はこのマシンではなく GitHub Actions の macOS runner (CI)・simtunnel (画面)・webtunnel (公開サイト) で行う | bannzai (立ち上げの依頼文) |
-| 2026-10-10 | 立ち上げ | 公開サイトと法務文書は、最初の公開版の設計 (PROJECT.md) に基づく内容を「開発中」と明記して先に公開し、公開時に実装と照らして更新する | agent |
-| 2026-10-11 | 作るかの判断 | 作る (「できるなら作ろう」) | bannzai |
-| 2026-10-11 | 作るかの判断 | 採用する案は両方: クリップボードを書き換えずに警告だけ出す設計を土台にし、SecChain に保存した秘密の実値との照合も MVP に含める | bannzai |
-| 2026-10-11 | 作るかの判断 | 配信先は両方: 先に Developer ID 署名 + 公証で GitHub Releases と自前の Homebrew tap から配り、Mac App Store 版は後から出す。App Sandbox 内で成立しない機能は Releases 版だけの機能にする | bannzai |
-| 2026-10-11 | 作るかの判断 | 作り手の目的は「自分が使いたい」と「ポートフォリオ」として扱う (返答が「よろしく」で目的の指定が無く、評価レポートの目的別の判定でこの 2 つが「条件付きで作る」に当たるため)。収益は目的にしないため、MVP に課金を入れず、特定商取引法に基づく表記は対象外にする | agent |
-| 2026-10-11 | 作るかの判断 | Developer ID + Homebrew tap で配る開発者向けツールは OSS に当たるため、リポジトリに入る文書 (`docs/` の紹介ページ・法務文書を含む)・コードのコメント・UI 文言を英語に切り替える。会話・issue・PR・GitHub のコメントは日本語のまま。日本語のローカライズは公開後の候補にする | agent |
-| 2026-10-11 | 作るかの判断 | OSS として公開するため、ライセンスは MIT (`LICENSE`。同じ作者の SecChain と同じ) にする。配布の経路だけでは利用・改変・再配布の許諾にならないため、ライセンスのファイルを置いて初めて OSS と呼ぶ | agent |
-| 2026-10-11 | 作るかの判断 | MVP は App Sandbox を有効のまま作る (Mac App Store 版と同じコードにするため)。SecChain との照合は、SecChain の秘密の値を PasteCheck に持たない経路 (SecChain 側に照合の機能を足し、一致した名前だけを受け取る) で行い、Keychain のアクセスグループの共有で値を読む案は採らない。経路の都合で Releases 版だけサンドボックスを外す判断が要る時は、照合の子 issue でこの表に追記する | agent |
-| 2026-10-11 | 作るかの判断 | ロードマップの弾の分け方: 土台 (検出ルールとクリップボードの監視・通知、英語への切り替え) → 土台に依存する機能 (OCR、メニューバーの設定と初回起動の案内、アプリアイコン、SecChain との照合) → 配布 (署名・公証・Releases・tap) | agent |
-| 2026-10-11 | 作るかの判断 | 不変条件 1 (クリップボードの中身をアプリの外に出さない) に唯一の例外を認める: 同じ Mac 上の SecChain の照合の機能へ、照合のためだけに、引数ではなく標準入力か XPC で、署名 (Team ID と bundle ID) を確かめた上でテキストを渡し、受け取るのは一致した秘密の名前だけにする (`PROJECT.md` 不変条件 1 と `.claude/rules/clipboard-content-handling.md`) | agent (SecChain の実値照合を MVP に含める bannzai の決定を実現する唯一の経路として) |
-| 2026-10-11 | 作るかの判断 | 警告の通知に「クリップボードを空にする」操作を置く。利用者が明示的に押した時だけ書き換えるため、不変条件 2 (既定で書き換えない) に反しない。自動では空にしない | agent |
-| 2026-10-12 | クリップボードの監視 (#7) | クリップボードのアクセス制御 (macOS 15.4 以降) が `.ask` か `.alwaysDeny` の時は読み取らず、メニューバーのアイコンとメニューで許可が要ることを示す。Apple の文書 (https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum の `default` の説明「Once programmatic pasteboard access triggers the first pasteboard access alert, the state automatically changes to `.ask`」) のとおりなら、利用者が System Settings で常に許可するまで検査は止まる。確認ダイアログを変更のたびに出さないことを優先した (戻すなら `PasteCheck/ClipboardMonitor.swift` の判定を変える) | agent |
+| 2026-10-10 | Launch | Documents and comments are in Japanese until the distribution channel is decided (switch to English if it is published as OSS) | agent |
+| 2026-10-10 | Launch | At launch, signing is ad-hoc in every configuration; signing for distribution is added after the distribution channel is decided | agent |
+| 2026-10-10 | Launch | Verification is done not on this machine but on GitHub Actions macOS runners (CI), simtunnel (screens), and webtunnel (the public site) | bannzai (the launch request) |
+| 2026-10-10 | Launch | The public site and legal documents are published first with content based on the design of the first public version (PROJECT.md), clearly marked "in development", and updated against the implementation at launch | agent |
+| 2026-10-11 | Build decision | Build it ("let's build it if we can") | bannzai |
+| 2026-10-11 | Build decision | Adopt both proposals: build on the design that only warns without rewriting the clipboard, and include matching against the actual values of secrets stored in SecChain in the MVP | bannzai |
+| 2026-10-11 | Build decision | Both distribution channels: first distribute from GitHub Releases and my own Homebrew tap with Developer ID signing + notarization, and ship a Mac App Store version later. Features that do not work inside the App Sandbox become Releases-only features | bannzai |
+| 2026-10-11 | Build decision | Treat the maker's goals as "I want to use it myself" and "portfolio" (the reply was "よろしく" ("go ahead") with no goal specified, and in the evaluation report's per-goal verdicts these two were "build with conditions"). Revenue is not a goal, so the MVP has no payments, and the notation based on the Act on Specified Commercial Transactions is out of scope | agent |
+| 2026-10-11 | Build decision | A developer tool distributed through Developer ID + a Homebrew tap counts as OSS, so switch the documents that go into the repository (including the `docs/` introduction page and legal documents), code comments, and UI text to English. Conversations, issues, PRs, and GitHub comments stay in Japanese. Japanese localization becomes a post-launch candidate | agent |
+| 2026-10-11 | Build decision | To publish as OSS, the license is MIT (`LICENSE`, the same as SecChain by the same author). A distribution channel alone does not grant permission to use, modify, or redistribute, so it is called OSS only once the license file is in place | agent |
+| 2026-10-11 | Build decision | Build the MVP with the App Sandbox kept enabled (to share code with the Mac App Store version). Matching with SecChain uses a path that keeps SecChain's secret values out of PasteCheck (add a matching feature to SecChain and receive only the matched names), and the idea of reading values by sharing a Keychain access group is not adopted. If the path requires removing the sandbox from the Releases version only, the matching child issue appends that decision to this table | agent |
+| 2026-10-11 | Build decision | How the roadmap is split into rounds: foundation (detection rules and clipboard monitoring/notifications, switching to English) → features that depend on the foundation (OCR, menu bar settings and first-launch guidance, app icon, matching with SecChain) → distribution (signing, notarization, Releases, tap) | agent |
+| 2026-10-11 | Build decision | Allow exactly one exception to invariant 1 (never let clipboard contents leave the app): pass text to SecChain's matching feature on the same Mac, only for matching, via standard input or XPC rather than arguments, after checking the signature (Team ID and bundle ID), and receive only the names of matched secrets (`PROJECT.md` invariant 1 and `.claude/rules/clipboard-content-handling.md`) | agent (as the only path that realizes bannzai's decision to include SecChain actual-value matching in the MVP) |
+| 2026-10-11 | Build decision | Put a "Clear clipboard" action in the warning notification. It rewrites the clipboard only when the user explicitly presses it, so it does not violate invariant 2 (no rewriting by default). It never clears automatically | agent |
+| 2026-10-12 | Switching to English | Strings that tools match keep their Japanese text: the section headings of this document (castle's product-loop `decide.sh` finds the decision criteria table by the exact heading `## 判定基準`), the `## 人間が確認` heading in `.github/pull_request_template.md` (PR bodies are written in Japanese per `AGENTS.md` "Language", and `human-verification-check.yml` and the auto-merge scripts match this heading), and the generated `ai-review-config` block in `AGENTS.md` (regenerated from a template, not edited by hand) | agent |
+| 2026-10-12 | Clipboard monitoring (#7) | When the clipboard access behavior (macOS 15.4 and later) is `.ask` or `.alwaysDeny`, do not read the clipboard, and show in the menu bar icon and menu that access is needed. If Apple's documentation holds (https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum , on `default`: "Once programmatic pasteboard access triggers the first pasteboard access alert, the state automatically changes to `.ask`"), inspection stops until the user always allows access in System Settings. Not showing the confirmation alert on every change took priority (to revert, change the check in `PasteCheck/ClipboardMonitor.swift`) | agent |
 
 ## agent に任せること
 
-- 検出ルールの具体的な正規表現と、誤検出を減らすための除外条件
-- 通知の実装方式 (UserNotifications か自前のウィンドウか)
-- 設定の保存形式と項目名
-- メニューの文言と並び
-- SecChain との照合の経路のうち、SecChain 側に足す照合の機能の形 (CLI のサブコマンドか XPC か。Keychain の共有で値を読む案は採らないと決めた) と、その設計
-- Homebrew tap の cask の書き方と release workflow の構成 (SecChain の `release.yml`・`documents/macos-distribution.md` を雛形にする)
+- The concrete regular expressions of the detection rules, and the exclusion conditions that reduce false positives
+- How notifications are implemented (UserNotifications or a custom window)
+- The storage format and key names of settings
+- The wording and order of the menu
+- In the SecChain matching path, the shape of the matching feature added to SecChain (a CLI subcommand or XPC. Reading values by sharing the Keychain was decided against) and its design
+- How to write the Homebrew tap cask and how to structure the release workflow (use SecChain's `release.yml` and `documents/macos-distribution.md` as templates)

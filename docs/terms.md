@@ -1,51 +1,51 @@
 ---
 layout: legal
-title: 利用規約
-# LP とストアの登録 URL は末尾スラッシュ付きの /terms/ を指すため、terms.html ではなく
-# ディレクトリの index として公開する
+title: Terms of Use
+# The landing page and store registration URLs point to /terms/ with a trailing slash, so publish this
+# as a directory index rather than terms.html
 permalink: /terms/
 ---
 
-# 利用規約
+# Terms of Use
 
-本利用規約 (以下「本規約」) は、bannzai (以下「提供者」) が提供する macOS 向けアプリ「PasteCheck」(以下「本アプリ」) の利用条件を定めるものです。利用者は本規約に同意した上で本アプリを利用するものとします。
+These Terms of Use (these "Terms") set out the conditions for using the macOS app "PasteCheck" (the "App") provided by bannzai (the "Provider"). Users use the App after agreeing to these Terms.
 
-## 第 1 条 (本アプリの内容)
+## Article 1 (What the App is)
 
-本アプリは、利用者がクリップボードにコピーしたテキストや画像に機密情報らしき文字列が含まれていないかを利用者の Mac の中で検査し、含まれていれば警告を表示するツールです。
+The App is a tool that checks, inside the user's Mac, whether the text or images the user copied to the clipboard contain strings that look like sensitive information, and shows a warning if they do.
 
-## 第 2 条 (検出の限界)
+## Article 2 (Limits of detection)
 
-1. 本アプリの検出は、文字列のパターンに基づく推定であり、機密情報を漏れなく検出すること、および機密情報でないものを検出しないことを保証しません
-2. 機密情報の取り扱いと、貼り付け・送信の最終的な判断は利用者が行うものとし、提供者は検出漏れ・誤検出によって生じた損害について責任を負いません
+1. The App's detection is an estimate based on string patterns, and it does not guarantee that it detects all sensitive information or that it does not detect things that are not sensitive information
+2. The handling of sensitive information and the final decision to paste or send are made by the user, and the Provider is not liable for any damage caused by missed detections or false detections
 
-## 第 3 条 (禁止事項)
+## Article 3 (Prohibited conduct)
 
-利用者は、本アプリの利用にあたり次の行為をしてはなりません。
+When using the App, users must not:
 
-1. 法令または公序良俗に違反する行為
-2. 提供者または第三者の権利を侵害する行為
-3. 本アプリの運営を妨害する行為
+1. Act in violation of laws, regulations, or public order and morals
+2. Infringe the rights of the Provider or third parties
+3. Interfere with the operation of the App
 
-## 第 4 条 (免責)
+## Article 4 (Disclaimer)
 
-1. 提供者は、本アプリに事実上または法律上の瑕疵 (安全性・信頼性・正確性・完全性・特定の目的への適合性・セキュリティなどに関する欠陥、エラーやバグ、権利侵害などを含みます) がないことを保証しません
-2. 提供者は、本アプリの利用によって利用者に生じたあらゆる損害について、提供者の故意または重過失による場合を除き責任を負いません
+1. The Provider does not guarantee that the App is free of defects in fact or in law (including defects relating to safety, reliability, accuracy, completeness, fitness for a particular purpose, security, and so on, as well as errors, bugs, and infringement of rights)
+2. The Provider is not liable for any damage incurred by users through the use of the App, except in cases of the Provider's intent or gross negligence
 
-## 第 5 条 (本アプリの変更・終了)
+## Article 5 (Changes to and termination of the App)
 
-提供者は、利用者に通知することなく本アプリの内容を変更し、または提供を終了することがあります。
+The Provider may change the content of the App or end its provision without notice to users.
 
-## 第 6 条 (本規約の変更)
+## Article 6 (Changes to these Terms)
 
-提供者は必要と判断した場合、利用者に通知することなく本規約を変更することがあります。変更後の本規約は、このアドレスで公開した時点から効力を生じます。
+The Provider may change these Terms without notice to users when it deems necessary. The changed Terms take effect when published at this address.
 
-## 第 7 条 (準拠法・裁判管轄)
+## Article 7 (Governing law and jurisdiction)
 
-本規約の解釈には日本法を準拠法とし、本アプリに関して紛争が生じた場合には、提供者の所在地を管轄する裁判所を専属的合意管轄とします。
+These Terms are governed by and interpreted under the laws of Japan, and any dispute concerning the App is subject to the exclusive agreed jurisdiction of the court having jurisdiction over the Provider's location.
 
-## お問い合わせ
+## Contact
 
 - bannzai.app@gmail.com
 
-施行日: 2026 年 10 月 10 日
+Effective date: October 10, 2026

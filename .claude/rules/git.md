@@ -1,3 +1,3 @@
-# Git 規約
+# Git conventions
 
-- commit メッセージは Conventional Commits 風のプレフィックス (`feat:` / `fix:` / `test:` / `docs:` / `chore:`) + 日本語の本文
+- Commit messages use a Conventional Commits style prefix (`feat:` / `fix:` / `test:` / `docs:` / `chore:`) + a Japanese body

@@ -1,39 +1,39 @@
-# GitHub Actions の macOS runner のデスクトップセッションで macOS アプリを開き、WebDriverAgentMac 経由で
-# メンテナの tailnet に公開する。ローカルの Mac でアプリを起動せずに画面を確認するための workflow。
-# 実体は simtunnel の reusable workflow (https://github.com/bannzai/simtunnel)。
+# Opens the macOS app in the desktop session of a GitHub Actions macOS runner and exposes it to the
+# maintainer's tailnet via WebDriverAgentMac. A workflow for checking screens without launching the app on the local Mac.
+# The implementation is simtunnel's reusable workflow (https://github.com/bannzai/simtunnel).
 name: macos-app-session
-# local/simtunnel はこの名前で run を特定する (session=<name> で始まる必要がある)。
+# local/simtunnel identifies the run by this name (it must start with session=<name>).
 run-name: "session=${{ inputs.session }} runner=${{ inputs.runner }}"
 
 on:
-  # fork からの pull request に Tailscale の secrets を渡さないため、手動実行だけにする。
+  # Manual runs only, so that Tailscale secrets are not passed to pull requests from forks.
   workflow_dispatch:
-    # local/simtunnel は session / device / duration_minutes を必ず送り、宣言の無い input は拒否される。
+    # local/simtunnel always sends session / device / duration_minutes, and undeclared inputs are rejected.
     inputs:
       session:
-        description: "セッション名。runner は simtunnel-<session> として tailnet に参加する (小文字・数字・ハイフン)"
+        description: "Session name. The runner joins the tailnet as simtunnel-<session> (lowercase letters, digits, hyphens)"
         required: true
         default: pastecheck-mac
       device:
-        description: "macOS では使わない。local/simtunnel が送るため宣言している"
+        description: "Not used on macOS. Declared because local/simtunnel sends it"
         required: false
         default: "-"
       duration_minutes:
-        description: "セッションを開いておく分数"
+        description: "Minutes to keep the session open"
         required: true
         default: "60"
       runner:
-        description: "macOS runner のラベル"
+        description: "Label of the macOS runner"
         required: false
         default: macos-26
 
 jobs:
   session:
-    # reusable workflow を呼ぶ job だけが OIDC token を得る。
+    # Only the job that calls the reusable workflow gets the OIDC token.
     permissions:
-      id-token: write # Tailscale が OIDC で runner を認証する
+      id-token: write # Tailscale authenticates the runner with OIDC
       contents: read
-    # simtunnel にはリリースタグが無いため、main の commit を固定する。
+    # simtunnel has no release tags, so pin a commit on main.
     uses: bannzai/simtunnel/.github/workflows/macos-session.yml@2fe90069d18a233f073d99683b6aaef2eedef2e4 # main 2026-10-07
     with:
       session: ${{ inputs.session }}
@@ -41,7 +41,7 @@ jobs:
       duration_minutes: ${{ inputs.duration_minutes }}
       build_project: PasteCheck.xcodeproj
       build_scheme: PasteCheck
-      # 全 configuration が ad-hoc 署名のため、署名 identity の無い runner でも Debug のままビルドできる。
+      # Every configuration uses ad-hoc signing, so a runner without a signing identity can still build Debug.
       build_configuration: Debug
     secrets:
       TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
