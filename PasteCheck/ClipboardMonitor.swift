@@ -59,6 +59,11 @@ final class ClipboardMonitor {
         }
         let changeCount = pasteboard.changeCount
         let text = pasteboard.string(forType: .string)
+        // Another copy during the read would pair new text with the old count, which double-counts the warning and
+        // makes "Clear clipboard" a no-op, so that read is dropped and retried on the next poll.
+        guard pasteboard.changeCount == changeCount else {
+            return
+        }
         // The first read in the `.default` behavior shows the system alert, after which the behavior becomes `.ask`
         // or whatever the user picked, so it is read again for the menu.
         updateAccessState()
