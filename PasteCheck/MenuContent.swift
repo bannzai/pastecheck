@@ -15,7 +15,7 @@ struct MenuContent: View {
             Text("Allow PasteCheck to read the clipboard in System Settings")
         }
         Text("Last check: \(monitor.lastCheckedAt?.formatted(date: .omitted, time: .standard) ?? "none yet")")
-        Text("Warnings today: \(monitor.warningCountsByDay[WarningCounts.dayKey(date: Date(), timeZone: .current)] ?? 0)")
+        Text("Warnings today: \(monitor.warningCountsByDay[WarningCounts.dayKey(date: Date(), timeZone: .autoupdatingCurrent)] ?? 0)")
         Divider()
         Button("Quit PasteCheck") {
             NSApplication.shared.terminate(nil)

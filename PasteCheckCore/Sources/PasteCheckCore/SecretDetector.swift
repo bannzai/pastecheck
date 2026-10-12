@@ -158,16 +158,17 @@ public enum SecretDetector {
         return cardRanges
     }
 
-    /// The longest leading part of `candidate` that is a card number: 13–19 digits starting with 2–6 that pass the Luhn
+    /// The shortest leading part of `candidate` that is a card number: 13–19 digits starting with 2–6 that pass the Luhn
     /// check and end at a separator or at the end of `candidate`. A following field separated by a space, such as the
-    /// expiry month in `4242 4242 4242 4242 12/30`, is therefore not glued onto the number.
+    /// expiry month in `4242 4242 4242 4242 12/30`, is therefore not glued onto the number. The shortest is taken
+    /// because a longer run passes Luhn by chance one time in ten, and grouped card numbers end at their first group
+    /// boundary of 13 or more digits (4-4-4-4 at 16, Amex 4-6-5 at 15).
     /// - Returns: `nil` when no such part exists.
     static func cardNumberRange(candidate: Substring) -> Range<String.Index>? {
         guard let first = candidate.first, ("2"..."6").contains(first) else {
             return nil
         }
         var digitCount = 0
-        var cardRange: Range<String.Index>?
         for index in candidate.indices where candidate[index].isNumber {
             digitCount += 1
             guard digitCount <= 19 else {
@@ -178,10 +179,10 @@ public enum SecretDetector {
                 continue
             }
             if passesLuhn(digits: String(candidate[..<end].filter(\.isNumber))) {
-                cardRange = candidate.startIndex..<end
+                return candidate.startIndex..<end
             }
         }
-        return cardRange
+        return nil
     }
 
     /// The Luhn (mod 10) check used by payment card numbers (ISO/IEC 7812-1).

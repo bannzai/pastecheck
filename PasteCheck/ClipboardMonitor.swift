@@ -81,9 +81,11 @@ final class ClipboardMonitor {
         guard !findings.isEmpty else {
             return
         }
-        let dayKey = WarningCounts.dayKey(date: Date(), timeZone: .current)
+        // The app stays running across time zone changes, and `autoupdatingCurrent` is documented as "automatically
+        // updating to the user's current preference":
+        // https://developer.apple.com/documentation/foundation/timezone/autoupdatingcurrent
+        let dayKey = WarningCounts.dayKey(date: Date(), timeZone: .autoupdatingCurrent)
         let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
-        let changeCount = lastChangeCount
         Task {
             // Only a warning the system accepted counts, because the metric counts warnings the user was shown.
             guard await WarningNotifier.post(

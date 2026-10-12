@@ -152,6 +152,14 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     #expect(findings.first?.length == 19)
 }
 
+@Test func reportsOnlyTheCardNumberWhenTheFollowingGroupAlsoPassesLuhn() {
+    // The 18 digits including `18` pass Luhn too, so a longest match would report 22 characters.
+    let findings = SecretDetector.findings(in: stripeTestCardDigits.joined(separator: " ") + " 18")
+
+    #expect(findings.map(\.kind) == [.creditCardNumber])
+    #expect(findings.first?.length == 19)
+}
+
 @Test func detectsCardNumberAfterAnotherNumberGroup() {
     let findings = SecretDetector.findings(in: "23 " + stripeTestCardDigits.joined())
 
