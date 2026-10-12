@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ page.title }} — PasteCheck</title>
-    <!-- _config.yml を置かないので site.baseurl は無く、絶対パスだとプロジェクトサイトの外を指す。
-         法務ページはすべてサイトルートの 1 階層下にある -->
+    <!-- There is no _config.yml, so site.baseurl does not exist and an absolute path would point outside the project site.
+         Every legal page sits one level below the site root -->
     <link rel="icon" href="../favicon.svg" type="image/svg+xml">
     <style>
-      /* LP は独立した文書で独自のスタイルを持つ。法務ページはスマートフォンと審査担当者のブラウザで
-         読めれば足りる */
+      /* The landing page is a standalone document with its own styles. The legal pages only need to be
+         readable on a smartphone and in a reviewer's browser */
       body {
         margin: 0 auto;
         padding: 2rem 1.25rem 4rem;

@@ -1,72 +1,72 @@
 ---
 layout: legal
-title: プライバシーポリシー
-# LP とストアの登録 URL は末尾スラッシュ付きの /privacy/ を指すため、privacy.html ではなく
-# ディレクトリの index として公開する
+title: Privacy Policy
+# The landing page and store registration URLs point to /privacy/ with a trailing slash, so publish this
+# as a directory index rather than privacy.html
 permalink: /privacy/
 ---
 
-# プライバシーポリシー
+# Privacy Policy
 
-bannzai (以下「提供者」) は、macOS 向けアプリ「PasteCheck」(以下「本アプリ」) における利用者の情報の取り扱いについて、本プライバシーポリシー (以下「本ポリシー」) を定めます。本アプリは開発中で、本ポリシーは最初の公開版の設計 (`documents/PROJECT.md`) に基づいて書かれています。公開時に実装と照らして更新します。
+bannzai (the "Provider") sets out this Privacy Policy (this "Policy") on how user information is handled in the macOS app "PasteCheck" (the "App"). The App is in development, and this Policy is written based on the design of the first public version (`documents/PROJECT.md`). It will be updated against the implementation at release.
 
-## 要約
+## Summary
 
-- 本アプリは利用者の情報を収集・送信・販売しません。提供者はサーバーを運用しておらず、本アプリ内で行われたことが提供者に届くことはありません
-- クリップボードの内容 (テキスト・画像) の検査は、利用者の Mac の中だけで行います。クリップボードの内容がネットワークへ送られることはありません
-- 本アプリにはアクセス解析・広告・クラッシュレポート・トラッキングの仕組みが含まれず、アカウントの作成も要りません
+- The App does not collect, transmit, or sell user information. The Provider does not operate any servers, and nothing done in the App ever reaches the Provider
+- Inspection of clipboard contents (text and images) happens only inside the user's Mac. Clipboard contents are never sent to the network
+- The App contains no analytics, advertising, crash reporting, or tracking, and requires no account
 
-## 本アプリが利用者の Mac の中で扱う情報
+## Information the App handles inside the user's Mac
 
-### クリップボードの内容
+### Clipboard contents
 
-本アプリは、利用者がコピーしたテキストや画像に機密情報 (API キー・アクセストークン・秘密鍵・クレジットカード番号など) らしき文字列が含まれていないかを検査し、含まれていれば警告を表示します。検査はすべて利用者の Mac の中で行われ、クリップボードの内容は本アプリの外 (ファイル・ログ・ネットワーク) に書き出されません。警告に表示するのは検出した種類と位置だけで、検出した値そのものは表示しません。
+The App checks whether the text or images the user copies contain strings that look like sensitive information (API keys, access tokens, private keys, credit card numbers, and so on), and shows a warning if they do. All inspection happens inside the user's Mac, and clipboard contents are not written outside the App (files, logs, network). A warning shows only the type and position of what was detected, never the detected value itself.
 
-<!-- source: documents/PROJECT.md「不変条件」。実装のソースの参照は検出機能の実装時に追記する -->
+<!-- source: documents/PROJECT.md "Invariants". A reference to the implementation source will be added when the detection feature is implemented -->
 
-### 設定
+### Settings
 
-検査の有効・無効、検出の種類ごとのオン・オフ、ログイン時の自動起動などの設定は、利用者の Mac の中 (本アプリの設定ファイル) にだけ保存されます。
+Settings such as enabling or disabling inspection, turning each detection type on or off, and launching at login are stored only inside the user's Mac (the App's settings file).
 
-### 権限
+### Permissions
 
-本アプリが macOS の権限 (例: ログイン時の自動起動) を求める時は、その理由を本アプリの画面で説明し、許可・拒否は macOS のシステム設定で利用者が管理します。
+When the App asks for a macOS permission (for example, launching at login), it explains the reason on the App's screen, and the user manages allowing or denying it in macOS System Settings.
 
-## 提供者が収集する情報と利用目的
+## Information the Provider collects and purposes of use
 
-提供者は本アプリを通じて利用者の情報を収集しません。利用者がメールで提供者に連絡した場合、提供者はその連絡先と内容を、その問い合わせへの回答のためにだけ利用します。それ以外の目的には利用しません。
+The Provider does not collect user information through the App. If a user contacts the Provider by email, the Provider uses that contact information and content only to answer that inquiry. It is not used for any other purpose.
 
-## 本アプリが利用していないもの
+## What the App does not use
 
-- アクセス解析・利用状況の計測 (Google Analytics や Firebase Analytics などの分析ツール): 利用していません。本アプリは外部へ情報を送信しません
-- 広告・広告識別子: 利用していません
-- 外部の AI サービス・クラウドの言語モデル: 利用していません。検査はすべて利用者の Mac の中で行い、クリップボードの内容を外部の AI に送ることはありません
-- 情報の取り扱いの委託先 (サーバー・解析事業者など): ありません
-- 外国にある第三者への提供: ありません
+- Analytics and usage measurement (analytics tools such as Google Analytics or Firebase Analytics): not used. The App does not send information outside
+- Advertising and advertising identifiers: not used
+- External AI services and cloud language models: not used. All inspection happens inside the user's Mac, and clipboard contents are never sent to an external AI
+- Contractors handling information (servers, analytics providers, and so on): none
+- Provision to third parties in foreign countries: none
 
-## 第三者への提供
+## Provision to third parties
 
-提供者は利用者の情報を保有していないため、第三者に提供することはありません。問い合わせに含まれる情報は、法令に基づく場合を除き第三者に提供しません。
+The Provider does not hold user information, so it never provides any to third parties. Information contained in inquiries is not provided to third parties except as required by law.
 
-## 開示・訂正・利用停止の請求
+## Requests for disclosure, correction, or suspension of use
 
-提供者が保有する利用者の情報は、利用者からの問い合わせに含まれる情報だけです。その開示・訂正・利用停止・削除を希望する場合は、下の「お問い合わせ」の連絡先に申し出てください。本人確認の上で遅滞なく対応します。
+The only user information the Provider holds is the information contained in inquiries from users. If you wish to have it disclosed, corrected, suspended from use, or deleted, contact the Provider at the address under "Contact" below. The Provider will respond without delay after verifying your identity.
 
-## 情報の削除
+## Deleting information
 
-本アプリのデータはすべて利用者の Mac の中にあり、設定は本アプリのコンテナフォルダ (`~/Library/Containers/com.bannzai.PasteCheck/`) に保存されます。本アプリを削除した後もこのフォルダが残ることがあるため、設定も含めて完全に消す時はこのフォルダを削除してください。クリップボードの内容は本アプリが保存しないため、削除する対象はありません。
+All of the App's data is inside the user's Mac, and settings are stored in the App's container folder (`~/Library/Containers/com.bannzai.PasteCheck/`). This folder may remain after the App is deleted, so to remove everything including settings, delete this folder. The App does not store clipboard contents, so there is nothing to delete for them.
 
-<!-- source: PasteCheck/PasteCheck.entitlements (com.apple.security.app-sandbox = true)。サンドボックスのアプリのデータが ~/Library/Containers/<bundle id>/ に置かれることは Apple の App Sandbox の文書 (https://developer.apple.com/documentation/security/app-sandbox) の container の説明による。アプリの削除後にコンテナが残るかは Apple の一次情報で確認できていないため「残ることがある」と書いている -->
+<!-- source: PasteCheck/PasteCheck.entitlements (com.apple.security.app-sandbox = true). That a sandboxed app's data is placed in ~/Library/Containers/<bundle id>/ follows the container description in Apple's App Sandbox documentation (https://developer.apple.com/documentation/security/app-sandbox). Whether the container remains after the app is deleted could not be confirmed in Apple's primary sources, so this says it "may remain" -->
 
 
-## お問い合わせ
+## Contact
 
-本ポリシーと情報の取り扱いに関する問い合わせは、次の連絡先まで:
+For inquiries about this Policy and the handling of information, contact:
 
 - bannzai.app@gmail.com
 
-## 本ポリシーの変更
+## Changes to this Policy
 
-提供者は本ポリシーを変更することがあります。最新の版は常にこのアドレスで公開し、変更の履歴はソースリポジトリで参照できます。
+The Provider may change this Policy. The latest version is always published at this address, and the history of changes can be viewed in the source repository.
 
-施行日: 2026 年 10 月 10 日
+Effective date: October 10, 2026
