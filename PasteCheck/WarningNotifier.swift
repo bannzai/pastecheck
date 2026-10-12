@@ -48,10 +48,20 @@ enum WarningNotifier {
     ///   ("This error occurs when you try to submit a notification request and your app or app extension isn't
     ///   authorized to schedule notifications").
     @MainActor
-    static func post(findings: [Finding], frontmostAppName: String?, dayKey: String, changeCount: Int) async -> Bool {
+    static func post(
+        textFindings: [Finding],
+        imageFindings: [Finding],
+        frontmostAppName: String?,
+        dayKey: String,
+        changeCount: Int
+    ) async -> Bool {
         let content = UNMutableNotificationContent()
-        content.title = WarningMessage.title(findings: findings)
-        content.body = WarningMessage.body(findings: findings, frontmostAppName: frontmostAppName)
+        content.title = WarningMessage.title(findings: textFindings + imageFindings)
+        content.body = WarningMessage.body(
+            textFindings: textFindings,
+            imageFindings: imageFindings,
+            frontmostAppName: frontmostAppName
+        )
         content.categoryIdentifier = categoryIdentifier
         content.userInfo = [dayKeyUserInfoKey: dayKey, changeCountUserInfoKey: changeCount, launchIDUserInfoKey: launchID]
         content.sound = .default

@@ -1,11 +1,13 @@
 /// Builds the text of the warning notification shown for one clipboard change.
 ///
-/// The text names only the kind, the position (line, column, character count) and the app that was frontmost,
-/// never any part of the matched value, not even a masked prefix (`documents/PROJECT.md` invariant 1).
+/// The text names only the kind, the position (line, column, character count, or "in the copied image") and the app
+/// that was frontmost, never any part of the matched value, not even a masked prefix (`documents/PROJECT.md`
+/// invariant 1).
 public enum WarningMessage {
-    /// The notification title, e.g. "Looks like a GitHub token". When several kinds were found, the first one by
-    /// position is named and the rest are counted.
-    /// - Precondition: `findings` is not empty and sorted by position, as `SecretDetector.findings(in:)` returns.
+    /// The notification title, e.g. "Looks like a GitHub token". When several kinds were found, the first one is
+    /// named and the rest are counted.
+    /// - Precondition: `findings` is not empty and in the order to name them: the text findings sorted by position, as
+    ///   `SecretDetector.findings(in:)` returns, followed by the image findings.
     public static func title(findings: [Finding]) -> String {
         guard let first = findings.first else {
             return "Looks like a secret"
@@ -22,21 +24,30 @@ public enum WarningMessage {
     }
 
     /// The notification body: where the first finding is, how many other matches there are, and which app was
-    /// frontmost. `frontmostAppName` is the app in front when the change was noticed, which is not necessarily the
-    /// app the text was copied from, so the wording says "in front" and the part is left out when it is `nil`.
-    public static func body(findings: [Finding], frontmostAppName: String?) -> String {
-        guard let first = findings.first else {
+    /// frontmost. One clipboard change can carry both text and an image, and the app that receives the paste picks
+    /// which one it reads, so both are inspected and reported in this one body instead of two warnings.
+    ///
+    /// `frontmostAppName` is the app in front when the change was noticed, which is not necessarily the app the
+    /// content was copied from, so the wording says "in front" and the part is left out when it is `nil`.
+    /// For an image, the position is only "in the copied image": lines and columns of OCR output do not map to
+    /// anything the user can find in the picture.
+    public static func body(textFindings: [Finding], imageFindings: [Finding], frontmostAppName: String?) -> String {
+        let location: String
+        if let first = textFindings.first {
+            let alsoInImage = imageFindings.isEmpty ? "" : ", also in the copied image"
+            location = "Line \(first.line), column \(first.column), \(first.length) characters\(alsoInImage)"
+        } else if !imageFindings.isEmpty {
+            location = "In the copied image"
+        } else {
             return "PasteCheck did not change the clipboard."
         }
-        let otherMatchCount = findings.count - 1
-        let location = "Line \(first.line), column \(first.column), \(first.length) characters"
         let others: String
-        switch otherMatchCount {
+        switch textFindings.count + imageFindings.count - 1 {
         case 0:
             others = ""
         case 1:
             others = " (and 1 more match)"
-        default:
+        case let otherMatchCount:
             others = " (and \(otherMatchCount) more matches)"
         }
         let app = frontmostAppName.map { ", while \($0) was in front" } ?? ""

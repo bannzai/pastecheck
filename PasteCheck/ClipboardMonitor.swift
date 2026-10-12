@@ -2,11 +2,11 @@ import AppKit
 import Observation
 import PasteCheckCore
 
-/// Watches the general pasteboard, inspects new text with `SecretDetector`, and warns through `WarningNotifier`.
-/// Holds the state shown at the top of the menu.
+/// Watches the general pasteboard, inspects new text and the text recognized in a new image with `SecretDetector`,
+/// and warns once per change through `WarningNotifier`. Holds the state shown at the top of the menu.
 ///
-/// The clipboard text lives only in a local inside `inspectIfChanged()` and is never stored, logged or sent anywhere
-/// (`documents/PROJECT.md` invariant 1).
+/// The clipboard text, image, and recognized text live only in locals of `inspectIfChanged()` and its recognition
+/// task, and are never stored, logged or sent anywhere (`documents/PROJECT.md` invariant 1).
 @MainActor
 @Observable
 final class ClipboardMonitor {
@@ -31,6 +31,8 @@ final class ClipboardMonitor {
 
     @ObservationIgnored private var lastChangeCount: Int
     @ObservationIgnored private var pollingTask: Task<Void, Never>?
+    /// The text recognition of the image copied last, while it runs.
+    @ObservationIgnored private var imageInspectionTask: Task<Void, Never>?
 
     /// Starts polling at once. Whatever was already on the clipboard at launch is not read, so launching never
     /// triggers the macOS clipboard access alert by itself.
@@ -59,37 +61,87 @@ final class ClipboardMonitor {
         }
         let changeCount = pasteboard.changeCount
         let text = pasteboard.string(forType: .string)
-        // Another copy during the read would pair new text with the old count, which double-counts the warning and
+        // The first read in the `.default` behavior shows the system alert, after which the behavior becomes `.ask`
+        // or whatever the user picked, so it is read again for the menu and before reading an image.
+        updateAccessState()
+        // Text and an image are both read: the app that receives the paste picks which one it takes, so skipping
+        // either could miss the one that gets pasted.
+        let imageData = accessState == .watching ? Self.imageData(pasteboard: pasteboard) : nil
+        // Another copy during the reads would pair new content with the old count, which double-counts the warning and
         // makes "Clear clipboard" a no-op, so that read is dropped and retried on the next poll.
         guard pasteboard.changeCount == changeCount else {
             return
         }
-        // The first read in the `.default` behavior shows the system alert, after which the behavior becomes `.ask`
-        // or whatever the user picked, so it is read again for the menu.
-        updateAccessState()
         // A read the user denied in that alert is left unprocessed, so the content is inspected once access is allowed.
         guard text != nil || accessState == .watching else {
             return
         }
         lastChangeCount = changeCount
         lastCheckedAt = Date()
-        // `nil` also means the clipboard holds no text (an image or files), which is not a permission problem.
-        guard let text else {
+        // The clipboard changed, so a recognition still running is about an image that is no longer there.
+        imageInspectionTask?.cancel()
+        imageInspectionTask = nil
+        let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
+        let textFindings = text.map { SecretDetector.findings(in: $0) } ?? []
+        // `nil` also means the clipboard holds no image to inspect, which is not a permission problem.
+        guard let imageData else {
+            warnIfFound(
+                textFindings: textFindings,
+                imageFindings: [],
+                frontmostAppName: frontmostAppName,
+                changeCount: changeCount
+            )
             return
         }
-        let findings = SecretDetector.findings(in: text)
-        guard !findings.isEmpty else {
+        // With an image, the warning waits for its recognition so that one copy gives one warning covering both.
+        // Polling goes on while the image is recognized off the main actor.
+        imageInspectionTask = Task { [weak self] in
+            let lines = await ImageTextRecognizer.recognizedLines(imageData: imageData)
+            // A copy made during recognition replaced the content, so this result is dropped.
+            guard !Task.isCancelled, NSPasteboard.general.changeCount == changeCount else {
+                return
+            }
+            self?.warnIfFound(
+                textFindings: textFindings,
+                imageFindings: SecretDetector.findings(in: RecognizedText.inspectableText(lines: lines)),
+                frontmostAppName: frontmostAppName,
+                changeCount: changeCount
+            )
+        }
+    }
+
+    /// The image on `pasteboard` to recognize text in, or `nil` when OCR inspection is off or there is no image.
+    /// A copied file is out of scope (https://github.com/bannzai/pastecheck/issues/9 ), so a pasteboard with a file
+    /// URL is not read as an image, whatever image type it also offers. Both PNG and TIFF are formats Vision reads.
+    private static func imageData(pasteboard: NSPasteboard) -> Data? {
+        guard ImageTextRecognizer.isEnabled(defaults: .standard),
+              pasteboard.types?.contains(.fileURL) != true,
+              let imageType = pasteboard.availableType(from: [.png, .tiff]) else {
+            return nil
+        }
+        return pasteboard.data(forType: imageType)
+    }
+
+    /// Shows one warning for the clipboard content at `changeCount` and counts it, when there are findings.
+    /// Not idempotent: each warning the system accepts is one more warning shown, which is what the metric counts.
+    private func warnIfFound(
+        textFindings: [Finding],
+        imageFindings: [Finding],
+        frontmostAppName: String?,
+        changeCount: Int
+    ) {
+        guard !textFindings.isEmpty || !imageFindings.isEmpty else {
             return
         }
         // The app stays running across time zone changes, and `autoupdatingCurrent` is documented as "automatically
         // updating to the user's current preference":
         // https://developer.apple.com/documentation/foundation/timezone/autoupdatingcurrent
         let dayKey = WarningCounts.dayKey(date: Date(), timeZone: .autoupdatingCurrent)
-        let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
         Task {
             // Only a warning the system accepted counts, because the metric counts warnings the user was shown.
             guard await WarningNotifier.post(
-                findings: findings,
+                textFindings: textFindings,
+                imageFindings: imageFindings,
                 frontmostAppName: frontmostAppName,
                 dayKey: dayKey,
                 changeCount: changeCount
