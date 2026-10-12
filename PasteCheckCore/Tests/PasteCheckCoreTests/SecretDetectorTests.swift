@@ -121,6 +121,13 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     #expect(kinds(text: "card: " + stripeTestCardDigits.joined(separator: separator)) == [.creditCardNumber])
 }
 
+@Test func detectsCardNumberFollowedByExpiry() {
+    let findings = SecretDetector.findings(in: "card: " + stripeTestCardDigits.joined(separator: " ") + " 12/30")
+
+    #expect(findings.map(\.kind) == [.creditCardNumber])
+    #expect(findings.first?.length == 19)
+}
+
 @Test func ignoresCardNumberThatFailsLuhn() {
     #expect(kinds(text: "4242 4242 " + "4242 4241").isEmpty)
 }
@@ -171,6 +178,15 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     let text = "OPENAI_API_KEY=" + "sk-" + "proj-" + "dummyValue1234567890abcd"
 
     #expect(kinds(text: text) == [.openAIKey, .envAssignment])
+}
+
+@Test func reportsLineAndColumnOfEveryMatchInManyLines() {
+    let text = (1...200).map { _ in "token " + awsSampleKeyID }.joined(separator: "\n")
+
+    let findings = SecretDetector.findings(in: text)
+
+    #expect(findings.map(\.line) == Array(1...200))
+    #expect(findings.allSatisfy { $0.column == 7 })
 }
 
 @Test func countsCRLFAsOneLineBreak() {

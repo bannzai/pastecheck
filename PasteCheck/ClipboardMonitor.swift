@@ -49,19 +49,19 @@ final class ClipboardMonitor {
     /// Reads and inspects the clipboard once per `changeCount` change. Reading only on a change, and not at all while
     /// access would ask or deny, keeps macOS from showing its access alert again and again.
     private func inspectIfChanged() {
+        // Refreshed on every poll, not only on a clipboard change, so allowing access in System Settings updates the
+        // icon right away. While access is needed, `lastChangeCount` is left alone, so the content copied in the
+        // meantime is inspected as soon as access is allowed.
+        updateAccessState()
         let pasteboard = NSPasteboard.general
-        guard pasteboard.changeCount != lastChangeCount else {
+        guard accessState == .watching, pasteboard.changeCount != lastChangeCount else {
             return
         }
         lastChangeCount = pasteboard.changeCount
-        accessState = Self.currentAccessState()
-        guard accessState == .watching else {
-            return
-        }
         let text = pasteboard.string(forType: .string)
         // The first read in the `.default` behavior shows the system alert, after which the behavior becomes `.ask`
         // or whatever the user picked, so it is read again for the menu.
-        accessState = Self.currentAccessState()
+        updateAccessState()
         lastCheckedAt = Date()
         // `nil` also means the clipboard holds no text (an image or files), which is not a permission problem.
         guard let text else {
@@ -86,6 +86,16 @@ final class ClipboardMonitor {
             }
             warningCountsByDay = WarningCountStore.recordWarning(defaults: .standard, dayKey: dayKey)
         }
+    }
+
+    /// Sets `accessState` only when it changed, because every assignment to an observed property re-renders the menu
+    /// bar label and this runs on every poll.
+    private func updateAccessState() {
+        let currentAccessState = Self.currentAccessState()
+        guard accessState != currentAccessState else {
+            return
+        }
+        accessState = currentAccessState
     }
 
     /// Maps the pasteboard access behavior (macOS 15.4+) to whether a read may happen without an alert or denial.

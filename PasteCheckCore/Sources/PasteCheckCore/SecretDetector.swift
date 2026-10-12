@@ -26,10 +26,13 @@ public enum SecretDetector {
     /// Returns every match of every rule in `text`, sorted by position (ties are broken by `SecretKind` order).
     /// Overlapping matches of different kinds are all reported; the caller decides how to summarize them.
     public static func findings(in text: String) -> [Finding] {
-        SecretKind.allCases
+        // Collected once so each finding's line lookup is a binary search instead of a rescan from the start, which
+        // keeps a copied log with many matches from blocking the main actor.
+        let lineStarts = [text.startIndex] + text.indices.filter { text[$0].isNewline }.map { text.index(after: $0) }
+        return SecretKind.allCases
             .flatMap { kind in
                 ranges(kind: kind, text: text).map { range in
-                    Finding(kind: kind, range: range, text: text)
+                    Finding(kind: kind, range: range, text: text, lineStarts: lineStarts)
                 }
             }
             .sorted { lhs, rhs in
@@ -62,9 +65,8 @@ public enum SecretDetector {
             // The END line is optional so a copied header alone still warns; when present, the range covers the block.
             return text.matches(of: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----(?:[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----)?/).map { $0.range }
         case .creditCardNumber:
-            return text.matches(of: /(?:^|[^0-9])([2-6][0-9](?:[ -]?[0-9]){11,17})(?![0-9])/)
-                .filter { passesLuhn(digits: String($0.output.1.filter(\.isNumber))) }
-                .map { $0.output.1.startIndex..<$0.output.1.endIndex }
+            return text.matches(of: /(?:^|[^0-9])([2-6][0-9](?:[ -]?[0-9]){11,})(?![0-9])/)
+                .compactMap { cardNumberRange(candidate: $0.output.1) }
         case .envAssignment:
             return text.matches(of: /^[ \t]*(?:#[ \t]*)?(?:export[ \t]+)?[A-Z][A-Z0-9_]{2,}=(["']?)([^\s"'#]{20,})\1(?:[ \t]+#[^\r\n]*)?[ \t]*$/.anchorsMatchLineEndings())
                 .filter { containsLetterAndDigit(value: $0.output.2) }
@@ -88,6 +90,29 @@ public enum SecretDetector {
             return false
         }
         return header["alg"] is String
+    }
+
+    /// The longest leading part of `candidate` that is a card number: 13–19 digits that pass the Luhn check and end at
+    /// a separator or at the end of `candidate`. A following field separated by a space, such as the expiry month in
+    /// `4242 4242 4242 4242 12/30`, is therefore not glued onto the number.
+    /// - Returns: `nil` when no such part exists.
+    static func cardNumberRange(candidate: Substring) -> Range<String.Index>? {
+        var digitCount = 0
+        var cardRange: Range<String.Index>?
+        for index in candidate.indices where candidate[index].isNumber {
+            digitCount += 1
+            guard digitCount <= 19 else {
+                break
+            }
+            let end = candidate.index(after: index)
+            guard digitCount >= 13, end == candidate.endIndex || !candidate[end].isNumber else {
+                continue
+            }
+            if passesLuhn(digits: String(candidate[..<end].filter(\.isNumber))) {
+                cardRange = candidate.startIndex..<end
+            }
+        }
+        return cardRange
     }
 
     /// The Luhn (mod 10) check used by payment card numbers (ISO/IEC 7812-1).
@@ -171,14 +196,24 @@ public struct Finding: Equatable, Sendable, CustomStringConvertible, CustomDebug
     }
 
     /// Derives `line`, `column` and `length` from `range` in `text`, so callers cannot pass inconsistent positions.
-    init(kind: SecretKind, range: Range<String.Index>, text: String) {
-        let prefix = text[..<range.lowerBound]
-        let lineStart = prefix.lastIndex(where: \.isNewline).map { text.index(after: $0) } ?? text.startIndex
+    /// - Precondition: `lineStarts` is the sorted start index of every line in `text`, beginning with `startIndex`.
+    init(kind: SecretKind, range: Range<String.Index>, text: String, lineStarts: [String.Index]) {
+        // Binary search for the number of lines that start at or before the match.
+        var low = 0
+        var high = lineStarts.count
+        while low < high {
+            let middle = (low + high) / 2
+            if lineStarts[middle] <= range.lowerBound {
+                low = middle + 1
+            } else {
+                high = middle
+            }
+        }
         self.init(
             kind: kind,
             range: range,
-            line: prefix.filter(\.isNewline).count + 1,
-            column: text.distance(from: lineStart, to: range.lowerBound) + 1,
+            line: low,
+            column: text.distance(from: lineStarts[low - 1], to: range.lowerBound) + 1,
             length: text.distance(from: range.lowerBound, to: range.upperBound)
         )
     }
