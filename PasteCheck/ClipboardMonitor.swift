@@ -76,7 +76,7 @@ final class ClipboardMonitor {
         guard !findings.isEmpty else {
             return
         }
-        let dayKey = WarningCounts.dayKey(date: Date(), calendar: .current)
+        let dayKey = WarningCounts.dayKey(date: Date(), timeZone: .current)
         let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
         let changeCount = lastChangeCount
         Task {

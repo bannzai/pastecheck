@@ -2,13 +2,12 @@ import Foundation
 import Testing
 @testable import PasteCheckCore
 
-@Test func dayKeyUsesTheCalendarTimeZone() throws {
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Tokyo"))
+@Test func dayKeyUsesTheGivenTimeZoneAndTheGregorianYear() throws {
     // 2026-10-11T16:00:00Z is already 2026-10-12 in Tokyo.
     let date = Date(timeIntervalSince1970: 1_791_734_400)
 
-    #expect(WarningCounts.dayKey(date: date, calendar: calendar) == "2026-10-12")
+    #expect(WarningCounts.dayKey(date: date, timeZone: try #require(TimeZone(identifier: "Asia/Tokyo"))) == "2026-10-12")
+    #expect(WarningCounts.dayKey(date: date, timeZone: try #require(TimeZone(identifier: "UTC"))) == "2026-10-11")
 }
 
 @Test func incrementedAddsANewDayAndRaisesAnExistingDay() {

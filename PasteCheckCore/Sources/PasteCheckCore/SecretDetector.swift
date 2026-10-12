@@ -26,13 +26,10 @@ public enum SecretDetector {
     /// Returns every match of every rule in `text`, sorted by position (ties are broken by `SecretKind` order).
     /// Overlapping matches of different kinds are all reported; the caller decides how to summarize them.
     public static func findings(in text: String) -> [Finding] {
-        // Collected once so each finding's line lookup is a binary search instead of a rescan from the start, which
-        // keeps a copied log with many matches from blocking the main actor.
-        let lineStarts = [text.startIndex] + text.indices.filter { text[$0].isNewline }.map { text.index(after: $0) }
-        return SecretKind.allCases
+        let matches = SecretKind.allCases
             .flatMap { kind in
                 ranges(kind: kind, text: text).map { range in
-                    Finding(kind: kind, range: range, text: text, lineStarts: lineStarts)
+                    (kind: kind, range: range)
                 }
             }
             .sorted { lhs, rhs in
@@ -41,6 +38,30 @@ public enum SecretDetector {
                 }
                 return lhs.kind.sortOrder < rhs.kind.sortOrder
             }
+        // Line and column are accumulated in one forward pass over the sorted matches, so the text before the matches
+        // is scanned once in total. Rescanning from the start, or from the line start, for each match is quadratic on
+        // a copied log or single-line JSON with many matches, and this runs on the main actor.
+        var cursor = text.startIndex
+        var line = 1
+        var column = 1
+        return matches.map { match in
+            while cursor < match.range.lowerBound {
+                if text[cursor].isNewline {
+                    line += 1
+                    column = 1
+                } else {
+                    column += 1
+                }
+                cursor = text.index(after: cursor)
+            }
+            return Finding(
+                kind: match.kind,
+                range: match.range,
+                line: line,
+                column: column,
+                length: text.distance(from: match.range.lowerBound, to: match.range.upperBound)
+            )
+        }
     }
 
     /// The ranges in `text` that `kind`'s rule matches. Boundaries are matched by a non-capturing prefix group
@@ -224,29 +245,6 @@ public struct Finding: Equatable, Sendable, CustomStringConvertible, CustomDebug
         self.line = line
         self.column = column
         self.length = length
-    }
-
-    /// Derives `line`, `column` and `length` from `range` in `text`, so callers cannot pass inconsistent positions.
-    /// - Precondition: `lineStarts` is the sorted start index of every line in `text`, beginning with `startIndex`.
-    init(kind: SecretKind, range: Range<String.Index>, text: String, lineStarts: [String.Index]) {
-        // Binary search for the number of lines that start at or before the match.
-        var low = 0
-        var high = lineStarts.count
-        while low < high {
-            let middle = (low + high) / 2
-            if lineStarts[middle] <= range.lowerBound {
-                low = middle + 1
-            } else {
-                high = middle
-            }
-        }
-        self.init(
-            kind: kind,
-            range: range,
-            line: low,
-            column: text.distance(from: lineStarts[low - 1], to: range.lowerBound) + 1,
-            length: text.distance(from: range.lowerBound, to: range.upperBound)
-        )
     }
 
     public var description: String {

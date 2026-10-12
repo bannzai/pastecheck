@@ -212,6 +212,16 @@ func detectsCardNumberThatPassesLuhn(separator: String) {
     #expect(findings.allSatisfy { $0.column == 7 })
 }
 
+@Test func reportsColumnOfEveryMatchInOneLongLine() {
+    let text = (1...200).map { _ in "\"" + awsSampleKeyID + "\"" }.joined(separator: ",")
+
+    let findings = SecretDetector.findings(in: text)
+
+    #expect(findings.count == 200)
+    #expect(findings.allSatisfy { $0.line == 1 })
+    #expect(findings.map(\.column) == (0..<200).map { $0 * 23 + 2 })
+}
+
 @Test func countsCRLFAsOneLineBreak() {
     let findings = SecretDetector.findings(in: "first line\r\nsecond " + awsSampleKeyID)
 
