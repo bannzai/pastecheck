@@ -2,8 +2,8 @@ import AppKit
 import Observation
 import PasteCheckCore
 
-/// Watches the general pasteboard, inspects new text, or the text recognized in a new image, with `SecretDetector`,
-/// and warns through `WarningNotifier`. Holds the state shown at the top of the menu.
+/// Watches the general pasteboard, inspects new text and the text recognized in a new image with `SecretDetector`,
+/// and warns once per change through `WarningNotifier`. Holds the state shown at the top of the menu.
 ///
 /// The clipboard text, image, and recognized text live only in locals of `inspectIfChanged()` and its recognition
 /// task, and are never stored, logged or sent anywhere (`documents/PROJECT.md` invariant 1).
@@ -64,7 +64,9 @@ final class ClipboardMonitor {
         // The first read in the `.default` behavior shows the system alert, after which the behavior becomes `.ask`
         // or whatever the user picked, so it is read again for the menu and before reading an image.
         updateAccessState()
-        let imageData = text == nil && accessState == .watching ? Self.imageData(pasteboard: pasteboard) : nil
+        // Text and an image are both read: the app that receives the paste picks which one it takes, so skipping
+        // either could miss the one that gets pasted.
+        let imageData = accessState == .watching ? Self.imageData(pasteboard: pasteboard) : nil
         // Another copy during the reads would pair new content with the old count, which double-counts the warning and
         // makes "Clear clipboard" a no-op, so that read is dropped and retried on the next poll.
         guard pasteboard.changeCount == changeCount else {
@@ -80,29 +82,28 @@ final class ClipboardMonitor {
         imageInspectionTask?.cancel()
         imageInspectionTask = nil
         let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
-        if let text {
+        let textFindings = text.map { SecretDetector.findings(in: $0) } ?? []
+        // `nil` also means the clipboard holds no image to inspect, which is not a permission problem.
+        guard let imageData else {
             warnIfFound(
-                findings: SecretDetector.findings(in: text),
-                inspectedContent: .text,
+                textFindings: textFindings,
+                imageFindings: [],
                 frontmostAppName: frontmostAppName,
                 changeCount: changeCount
             )
             return
         }
-        // `nil` also means the clipboard holds neither text nor an image to inspect, which is not a permission problem.
-        guard let imageData else {
-            return
-        }
+        // With an image, the warning waits for its recognition so that one copy gives one warning covering both.
         // Polling goes on while the image is recognized off the main actor.
         imageInspectionTask = Task { [weak self] in
             let lines = await ImageTextRecognizer.recognizedLines(imageData: imageData)
-            // A copy made during recognition replaced the image, so this result is dropped.
+            // A copy made during recognition replaced the content, so this result is dropped.
             guard !Task.isCancelled, NSPasteboard.general.changeCount == changeCount else {
                 return
             }
             self?.warnIfFound(
-                findings: SecretDetector.findings(in: RecognizedText.inspectableText(lines: lines)),
-                inspectedContent: .image,
+                textFindings: textFindings,
+                imageFindings: SecretDetector.findings(in: RecognizedText.inspectableText(lines: lines)),
                 frontmostAppName: frontmostAppName,
                 changeCount: changeCount
             )
@@ -124,12 +125,12 @@ final class ClipboardMonitor {
     /// Shows one warning for the clipboard content at `changeCount` and counts it, when there are findings.
     /// Not idempotent: each warning the system accepts is one more warning shown, which is what the metric counts.
     private func warnIfFound(
-        findings: [Finding],
-        inspectedContent: InspectedContent,
+        textFindings: [Finding],
+        imageFindings: [Finding],
         frontmostAppName: String?,
         changeCount: Int
     ) {
-        guard !findings.isEmpty else {
+        guard !textFindings.isEmpty || !imageFindings.isEmpty else {
             return
         }
         // The app stays running across time zone changes, and `autoupdatingCurrent` is documented as "automatically
@@ -139,8 +140,8 @@ final class ClipboardMonitor {
         Task {
             // Only a warning the system accepted counts, because the metric counts warnings the user was shown.
             guard await WarningNotifier.post(
-                findings: findings,
-                inspectedContent: inspectedContent,
+                textFindings: textFindings,
+                imageFindings: imageFindings,
                 frontmostAppName: frontmostAppName,
                 dayKey: dayKey,
                 changeCount: changeCount

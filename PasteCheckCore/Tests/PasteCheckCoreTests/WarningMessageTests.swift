@@ -28,7 +28,7 @@ private func finding(kind: SecretKind, line: Int, column: Int, length: Int) -> F
     let findings = [finding(kind: .githubToken, line: 3, column: 5, length: 40)]
 
     #expect(
-        WarningMessage.body(findings: findings, inspectedContent: .text, frontmostAppName: "Terminal")
+        WarningMessage.body(textFindings: findings, imageFindings: [], frontmostAppName: "Terminal")
             == "Line 3, column 5, 40 characters, while Terminal was in front. PasteCheck did not change the clipboard."
     )
 }
@@ -40,8 +40,18 @@ private func finding(kind: SecretKind, line: Int, column: Int, length: Int) -> F
     ]
 
     #expect(
-        WarningMessage.body(findings: findings, inspectedContent: .image, frontmostAppName: "Preview")
+        WarningMessage.body(textFindings: [], imageFindings: findings, frontmostAppName: "Preview")
             == "In the copied image (and 1 more match), while Preview was in front. PasteCheck did not change the clipboard."
+    )
+}
+
+@Test func bodyForTextAndImageIsOneWarning() {
+    let textFindings = [finding(kind: .githubToken, line: 3, column: 5, length: 40)]
+    let imageFindings = [finding(kind: .githubToken, line: 1, column: 1, length: 40)]
+
+    #expect(
+        WarningMessage.body(textFindings: textFindings, imageFindings: imageFindings, frontmostAppName: "Keynote")
+            == "Line 3, column 5, 40 characters, also in the copied image (and 1 more match), while Keynote was in front. PasteCheck did not change the clipboard."
     )
 }
 
@@ -52,7 +62,7 @@ private func finding(kind: SecretKind, line: Int, column: Int, length: Int) -> F
     ]
 
     #expect(
-        WarningMessage.body(findings: findings, inspectedContent: .text, frontmostAppName: nil)
+        WarningMessage.body(textFindings: findings, imageFindings: [], frontmostAppName: nil)
             == "Line 1, column 1, 40 characters (and 1 more match). PasteCheck did not change the clipboard."
     )
 }

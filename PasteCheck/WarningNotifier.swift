@@ -49,17 +49,17 @@ enum WarningNotifier {
     ///   authorized to schedule notifications").
     @MainActor
     static func post(
-        findings: [Finding],
-        inspectedContent: InspectedContent,
+        textFindings: [Finding],
+        imageFindings: [Finding],
         frontmostAppName: String?,
         dayKey: String,
         changeCount: Int
     ) async -> Bool {
         let content = UNMutableNotificationContent()
-        content.title = WarningMessage.title(findings: findings)
+        content.title = WarningMessage.title(findings: textFindings + imageFindings)
         content.body = WarningMessage.body(
-            findings: findings,
-            inspectedContent: inspectedContent,
+            textFindings: textFindings,
+            imageFindings: imageFindings,
             frontmostAppName: frontmostAppName
         )
         content.categoryIdentifier = categoryIdentifier
