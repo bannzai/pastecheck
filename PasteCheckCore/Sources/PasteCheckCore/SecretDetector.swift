@@ -86,7 +86,16 @@ public enum SecretDetector {
                 .map { $0.output.1.startIndex..<$0.output.1.endIndex }
         case .pemPrivateKey:
             // The END line is optional so a copied header alone still warns; when present, the range covers the block.
-            return text.matches(of: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----(?:[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----)?/).map { $0.range }
+            // The END line is searched for only up to the next BEGIN line, so text with many headers and no END lines
+            // is scanned once instead of once per header to the end.
+            let headers = text.matches(of: /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/).map(\.range)
+            return headers.enumerated().map { offset, header in
+                let searchEnd = offset + 1 < headers.count ? headers[offset + 1].lowerBound : text.endIndex
+                guard let end = text[header.upperBound..<searchEnd].firstMatch(of: /-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/) else {
+                    return header
+                }
+                return header.lowerBound..<end.range.upperBound
+            }
         case .creditCardNumber:
             return text.matches(of: /(?:^|[^0-9])([0-9](?:[ -]?[0-9]){12,})(?![0-9])/)
                 .flatMap { cardNumberRanges(digitRun: $0.output.1) }

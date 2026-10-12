@@ -116,6 +116,18 @@ func detectsSlackTokens(prefix: String) {
     #expect(kinds(text: "-----BEGIN " + "PRIVATE KEY-----") == [.pemPrivateKey])
 }
 
+@Test func reportsEachPEMHeaderWithoutEndLineSeparately() {
+    let header = "-----BEGIN " + "PRIVATE KEY-----"
+    let block = "-----BEGIN " + "EC PRIVATE KEY-----\nplaceholder\n-----END " + "EC PRIVATE KEY-----"
+    let text = Array(repeating: header, count: 300).joined(separator: "\n") + "\n" + block
+
+    let findings = SecretDetector.findings(in: text)
+
+    #expect(findings.count == 301)
+    #expect(findings.dropLast().allSatisfy { $0.length == header.count })
+    #expect(findings.last?.length == block.count)
+}
+
 @Test func ignoresPublicKeyAndCertificate() {
     #expect(kinds(text: "-----BEGIN " + "PUBLIC KEY-----").isEmpty)
     #expect(kinds(text: "-----BEGIN " + "CERTIFICATE-----").isEmpty)
