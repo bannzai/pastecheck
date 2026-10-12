@@ -11,7 +11,7 @@ import Foundation
 /// - OpenAI: the part after `sk-` must contain both a letter and a digit. Real keys are random base62,
 ///   while kebab-case words such as `sk-learn-...` are letters only.
 /// - JWT: the first segment must base64url-decode to a JSON object with an `alg` member, as every JWS / JWE
-///   header has (RFC 7515 section 4.1.1, RFC 7516 section 4.1.1). Any `eyJ...` text that is not a token header
+///   header has (RFC 7515 section 4.1.1, RFC 7516 section 4.1.1). Any `eyJ...`-like text that is not a token header
 ///   is skipped. A dot right after the third segment ends the token (a sentence period), but a dot followed by
 ///   another segment means a longer dotted string such as a five-segment JWE, which this rule does not report.
 /// - Credit card numbers: the digits must pass the Luhn check (ISO/IEC 7812-1) and start with 2–6. Card brands
@@ -81,7 +81,9 @@ public enum SecretDetector {
         case .slackToken:
             return text.matches(of: /(?:^|[^A-Za-z0-9])(xox[abprs]-[A-Za-z0-9-]{10,})(?![A-Za-z0-9-])/).map { $0.output.1.startIndex..<$0.output.1.endIndex }
         case .jwt:
-            return text.matches(of: /(?:^|[^A-Za-z0-9_-])((eyJ[A-Za-z0-9_-]+)\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)(?![A-Za-z0-9_-]|\.[A-Za-z0-9_-])/)
+            // A JSON object starts with `{` (0x7B), whose base64 is `e` followed by one of `w`–`z` depending on the next
+            // byte (`eyJ` for `{"`, `eyA` for `{ `, `ewo` for a newline), so the candidate is not limited to `eyJ`.
+            return text.matches(of: /(?:^|[^A-Za-z0-9_-])((e[w-z][A-Za-z0-9_-]+)\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)(?![A-Za-z0-9_-]|\.[A-Za-z0-9_-])/)
                 .filter { isJOSEHeader(base64URLSegment: $0.output.2) }
                 .map { $0.output.1.startIndex..<$0.output.1.endIndex }
         case .pemPrivateKey:

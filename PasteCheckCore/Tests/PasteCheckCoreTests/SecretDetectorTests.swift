@@ -91,6 +91,11 @@ func detectsSlackTokens(prefix: String) {
     #expect(findings.first?.column == 8)
 }
 
+@Test func detectsJWTWhoseHeaderHasWhitespace() {
+    // `{ "alg":"HS256"}` encodes to `eyAi...`, not `eyJ...`.
+    #expect(kinds(text: "Bearer " + "eyAiYWxnIjoiSFMyNTYifQ" + "." + jwtSamplePayload + ".dummysignature") == [.jwt])
+}
+
 @Test func detectsJWTFollowedBySentencePeriod() {
     #expect(kinds(text: "The token is " + jwtSampleHeader + "." + jwtSamplePayload + ".dummysignature.") == [.jwt])
 }
