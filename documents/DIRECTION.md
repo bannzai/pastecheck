@@ -35,7 +35,7 @@ The MVP (the list bannzai settled in the build decision as "both (build on the w
 - [x] OCR inspection of images (Vision)
 - [ ] Menu bar settings (pause, on/off per type, launch at login) and first-launch guidance (clipboard access permission, notification permission, SecChain integration)
 - [ ] Links to contact, the privacy policy, and the terms of use
-- [ ] App icon
+- [x] App icon
 - [ ] Distribution: Developer ID signing, notarization, a DMG on GitHub Releases, and a cask in my own Homebrew tap (bannzai/homebrew-tap). The release workflow runs only via `workflow_dispatch` until the decision to launch is made
 - [ ] Switch documents, code comments, and UI text to English (to publish as OSS)
 
@@ -74,6 +74,7 @@ Candidates (not in the MVP. Whether to add them is decided on a decision date or
 | 2026-10-12 | Image OCR (#9) | When the clipboard holds both text and an image, inspect only the text, and run OCR only when there is no text. One copy then gives at most one warning instead of two for the same key. The cost is that an image copied together with some text is not OCR'd. Which apps put both on the clipboard, and whether a screenshot comes with no text, is unverified (to revert, change `inspectIfChanged()` in `PasteCheck/ClipboardMonitor.swift`) | agent |
 | 2026-10-12 | Image OCR (#9) | The "Text inside images (OCR)" switch is the `UserDefaults` key `detectsTextInImages`, on when unset (OCR is an MVP feature, and the switch is for turning it off). The menu row that changes it is left to the menu bar settings issue (#10) | agent |
 | 2026-10-12 | Image OCR (#9) | Replaces the row above about inspecting only the text: when the clipboard holds both text and an image, inspect both and show one warning that covers both ("..., also in the copied image"). The app that receives the paste picks which one it reads, and PasteCheck cannot know which at copy time, so skipping either could miss the one that gets pasted. With an image, the warning waits for OCR so that one copy still gives one warning | bannzai (PR #17 review) |
+| 2026-10-16 | App icon (#11) | With no reply yet on the look decision (#5), the app icon follows the look the agent proposed there (one accent color `#1f6fd6`, no decoration): a copied sheet where one line is only outlined ("where, not what"), out of 3 candidates. The menu bar uses SF Symbols per state (`checkmark.shield` / `shield.slash` / `exclamationmark.shield`). To switch, change `source_svg` in `documents/design/app-icon/render.sh` and run it (`documents/design/app-icon/README.md`) | agent |
 
 ## agent に任せること
 

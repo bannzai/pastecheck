@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Candidate B "clipboard bracket": the clipboard keeps its content; brackets point at the line to look at before pasting. -->
+  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="#eef1f5"/>
+  <rect x="252" y="214" width="520" height="620" rx="48" fill="#1f6fd6"/>
+  <rect x="300" y="282" width="424" height="500" rx="24" fill="#ffffff"/>
+  <rect x="402" y="180" width="220" height="104" rx="32" fill="#16365f"/>
+  <rect x="352" y="364" width="320" height="40" rx="20" fill="#b9c6d8"/>
+  <path d="M368 448 h-36 v124 h36" fill="none" stroke="#1f6fd6" stroke-width="28" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M656 448 h36 v124 h-36" fill="none" stroke="#1f6fd6" stroke-width="28" stroke-linejoin="round" stroke-linecap="round"/>
+  <rect x="352" y="616" width="260" height="40" rx="20" fill="#b9c6d8"/>
+  <rect x="352" y="696" width="200" height="40" rx="20" fill="#b9c6d8"/>
+</svg>

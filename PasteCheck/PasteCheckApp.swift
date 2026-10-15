@@ -11,8 +11,15 @@ struct PasteCheckApp: App {
         MenuBarExtra {
             MenuContent(monitor: monitor)
         } label: {
-            // The icon itself tells the user when clipboard access is needed, without opening the menu.
-            Image(systemName: monitor.accessState == .watching ? "checkmark.shield" : "exclamationmark.shield")
+            // The icon itself tells the user the monitoring state without opening the menu. The symbols per state,
+            // including `shield.slash` for the paused state that the menu settings add, are listed in
+            // `documents/design/app-icon/README.md`. A switch, so a new state cannot ship without its symbol.
+            switch monitor.accessState {
+            case .watching:
+                Image(systemName: "checkmark.shield")
+            case .needsPermission:
+                Image(systemName: "exclamationmark.shield")
+            }
         }
     }
 }
