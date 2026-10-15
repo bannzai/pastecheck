@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Candidate A "marked line": a copied sheet where one line is only outlined. PasteCheck tells where a secret is, never what it is. -->
+  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="#1f6fd6"/>
+  <rect x="262" y="214" width="500" height="596" rx="44" fill="#ffffff"/>
+  <rect x="334" y="300" width="356" height="44" rx="22" fill="#b9c6d8"/>
+  <rect x="334" y="392" width="280" height="44" rx="22" fill="#b9c6d8"/>
+  <rect x="320" y="472" width="384" height="88" rx="24" fill="none" stroke="#1f6fd6" stroke-width="28"/>
+  <rect x="334" y="596" width="320" height="44" rx="22" fill="#b9c6d8"/>
+  <rect x="334" y="688" width="220" height="44" rx="22" fill="#b9c6d8"/>
+</svg>

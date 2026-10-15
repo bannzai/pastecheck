@@ -7,6 +7,7 @@ This directory holds the mockups an agent made for the "direction of look and ex
 - `mock-<date>/` holds one set of mockups.
   - `canvas.json` and `*.dc.html` are the files of the Claude Design canvas. They need the Claude Design canvas runtime and cannot be displayed on their own.
   - `index.html` shows every board stacked vertically. Open it directly in a browser. It loads no external resources.
+- `app-icon/` holds the app icon candidates, the script that renders the chosen one into the asset catalog, and the menu bar symbols (see `app-icon/README.md`).
 
 Mockups are proposals and may show details the requirements do not define yet (for example the "12 secrets linked" count in the menu, which would need SecChain to expose a count). `documents/PROJECT.md` is the source for what gets built; a mockup detail not covered there is decided in the implementing issue.
 

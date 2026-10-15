@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Candidate C "caret before the paste": the text cursor where the paste would land, with the next word only outlined. -->
+  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="#16365f"/>
+  <rect x="212" y="452" width="156" height="120" rx="28" fill="#ffffff"/>
+  <path d="M440 304 h96 M488 304 v416 M440 720 h96" fill="none" stroke="#ffffff" stroke-width="40" stroke-linecap="round"/>
+  <rect x="604" y="452" width="208" height="120" rx="28" fill="none" stroke="#5aa0ff" stroke-width="28"/>
+</svg>
