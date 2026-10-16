@@ -1,0 +1,172 @@
+name: Release
+
+# Publishes the notarized DMG of the macOS app, and the matching Homebrew cask, as a GitHub release
+# for an existing version tag. Setup, secrets, and the publishing steps that follow:
+# documents/macos-distribution.md.
+# Runs only by hand until bannzai decides to go public after trying a build; a tag push trigger is
+# added then (documents/macos-distribution.md, "Publishing a version").
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, equal to MARKETING_VERSION (for example 0.1.0). The tag v<version> must already be pushed."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    # Adds -o pipefail to the default shell options.
+    shell: bash
+
+env:
+  # Passed through the environment rather than interpolated into scripts, so the input cannot inject
+  # shell code; the first step also rejects anything that is not a plain version number.
+  VERSION: ${{ inputs.version }}
+
+jobs:
+  release:
+    # The repository is public, so GitHub-hosted macOS runners are free of charge.
+    runs-on: macos-26
+    # Notarization usually finishes within minutes but has no upper bound; an hour leaves room for a
+    # slow notary queue after a build of a few minutes.
+    timeout-minutes: 60
+    permissions:
+      # Creating the release and uploading its assets.
+      contents: write
+    steps:
+      # Fails before any build when the input or a secret is missing, so a run without setup stops
+      # with a message that names what to register.
+      - name: Check the version and the secrets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEVELOPER_ID_APPLICATION_P12_BASE64: ${{ secrets.DEVELOPER_ID_APPLICATION_P12_BASE64 }}
+          DEVELOPER_ID_APPLICATION_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_P12_PASSWORD }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must look like 1.2.3, got: ${VERSION}"
+            exit 1
+          fi
+          missing=()
+          for name in DEVELOPER_ID_APPLICATION_P12_BASE64 DEVELOPER_ID_APPLICATION_P12_PASSWORD ASC_API_KEY_ID ASC_API_KEY_ISSUER_ID ASC_API_KEY_P8_BASE64; do
+            if [ -z "${!name}" ]; then
+              missing+=("${name}")
+            fi
+          done
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "::error::Repository secrets are not set: ${missing[*]} (documents/macos-distribution.md, \"Repository secrets\")"
+            exit 1
+          fi
+          if ! git ls-remote --exit-code "https://github.com/${GITHUB_REPOSITORY}.git" "refs/tags/v${VERSION}" > /dev/null; then
+            echo "::error::The tag v${VERSION} does not exist; push it first (documents/macos-distribution.md, \"Publishing a version\")"
+            exit 1
+          fi
+          # A rebuilt DMG has a different SHA-256 (new signing timestamps), so replacing a published one
+          # would break the cask already copied to the tap. A run that failed before uploading the DMG
+          # can still be retried. Any other error than a missing release stops the run, so an API
+          # failure is not taken for "no DMG yet".
+          if release_assets="$(gh release view "v${VERSION}" -R "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' 2>&1)"; then
+            if grep -qx "PasteCheck-${VERSION}.dmg" <<< "${release_assets}"; then
+              echo "::error::v${VERSION} already has PasteCheck-${VERSION}.dmg; release a new version instead of replacing it"
+              exit 1
+            fi
+          elif [ "${release_assets}" != "release not found" ]; then
+            echo "::error::Could not read the release v${VERSION}: ${release_assets}"
+            exit 1
+          fi
+
+      # Builds the tagged commit, so the release and its assets match the tag that
+      # gh release create --verify-tag points to.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+          # No later step pushes, and make dmg should not see a token in .git/config.
+          persist-credentials: false
+
+      # The DMG and the cask are named after the app's version, so an input that differs from it would
+      # publish assets that the cask's URL does not point to.
+      - name: Check that the version matches the app version
+        run: |
+          marketing_version="$(xcodebuild -project PasteCheck.xcodeproj -target PasteCheck -configuration Release -showBuildSettings -json | jq -er '.[0].buildSettings.MARKETING_VERSION')"
+          if [ "${VERSION}" != "${marketing_version}" ]; then
+            echo "::error::The version ${VERSION} does not match MARKETING_VERSION ${marketing_version} at the tag v${VERSION}"
+            exit 1
+          fi
+
+      # Follows https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/sign-xcode-applications.
+      # The keychain password only protects this job's temporary keychain, so it is generated here
+      # instead of being stored as a secret.
+      - name: Import the Developer ID Application certificate
+        env:
+          DEVELOPER_ID_APPLICATION_P12_BASE64: ${{ secrets.DEVELOPER_ID_APPLICATION_P12_BASE64 }}
+          DEVELOPER_ID_APPLICATION_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_P12_PASSWORD }}
+        run: |
+          keychain_path="${RUNNER_TEMP}/developer-id.keychain-db"
+          certificate_path="${RUNNER_TEMP}/developer-id-application.p12"
+          keychain_password="$(openssl rand -base64 32)"
+          echo "::add-mask::${keychain_password}"
+
+          printf '%s' "${DEVELOPER_ID_APPLICATION_P12_BASE64}" | base64 --decode > "${certificate_path}"
+          security create-keychain -p "${keychain_password}" "${keychain_path}"
+          security set-keychain-settings -lut 21600 "${keychain_path}"
+          security unlock-keychain -p "${keychain_password}" "${keychain_path}"
+          security import "${certificate_path}" -P "${DEVELOPER_ID_APPLICATION_P12_PASSWORD}" -A -t cert -f pkcs12 -k "${keychain_path}"
+          rm -f "${certificate_path}"
+          # codesign needs the intermediate authority to build the certificate chain. Both Developer ID
+          # authorities are imported, so the chain builds whichever one issued the certificate.
+          for intermediate_certificate in DeveloperIDCA.cer DeveloperIDG2CA.cer; do
+            curl -fsSL "https://www.apple.com/certificateauthority/${intermediate_certificate}" -o "${RUNNER_TEMP}/${intermediate_certificate}"
+            security import "${RUNNER_TEMP}/${intermediate_certificate}" -k "${keychain_path}"
+          done
+          security set-key-partition-list -S apple-tool:,apple: -k "${keychain_password}" "${keychain_path}"
+          security list-keychain -d user -s "${keychain_path}"
+          # Stops here instead of at signing when the .p12 held no usable Developer ID identity.
+          if ! security find-identity -v -p codesigning "${keychain_path}" | grep -q '"Developer ID Application: '; then
+            echo "::error::DEVELOPER_ID_APPLICATION_P12_BASE64 holds no valid Developer ID Application identity with its private key"
+            exit 1
+          fi
+
+      - name: Build, notarize, and staple the DMG
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: make dmg
+
+      # The DMG is uploaded last: the first step treats a release that has it as complete, so a run
+      # that fails before that point (including one that left a release without the DMG) can be
+      # run again.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${VERSION}"
+          dmg_path="tmp/distribution/PasteCheck-${VERSION}.dmg"
+          cask_path="tmp/distribution/pastecheck.rb"
+          dmg_sha256="$(shasum -a 256 "${dmg_path}" | cut -d ' ' -f 1)"
+          sed -e "s/^  version \".*\"$/  version \"${VERSION}\"/" \
+            -e "s/^  sha256 \".*\"$/  sha256 \"${dmg_sha256}\"/" \
+            Casks/pastecheck.rb > "${cask_path}"
+          # A change to the template's layout would otherwise publish the placeholder values.
+          if ! grep -qx "  version \"${VERSION}\"" "${cask_path}" || ! grep -qx "  sha256 \"${dmg_sha256}\"" "${cask_path}"; then
+            echo "::error::Could not fill the version and sha256 into Casks/pastecheck.rb"
+            exit 1
+          fi
+          if ! gh release view "${tag}" > /dev/null 2>&1; then
+            gh release create "${tag}" --verify-tag --title "PasteCheck ${VERSION}" --generate-notes
+          fi
+          gh release upload "${tag}" "${cask_path}" --clobber
+          gh release upload "${tag}" "${dmg_path}" --clobber
+
+      - name: Delete the temporary keychain
+        if: always()
+        run: security delete-keychain "${RUNNER_TEMP}/developer-id.keychain-db" || true

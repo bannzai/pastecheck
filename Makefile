@@ -6,7 +6,7 @@ DERIVED_DATA := tmp/DerivedData
 # A bare make is the entry point for a person to check behavior by hand.
 .DEFAULT_GOAL := macos
 
-.PHONY: build-macos test clean
+.PHONY: build-macos test dmg clean
 
 # Build only. Does not install.
 build-macos:
@@ -14,6 +14,13 @@ build-macos:
 
 test:
 	swift test --package-path PasteCheckCore
+
+# Build the Developer ID signed, notarized, and stapled DMG at tmp/distribution/PasteCheck-<version>.dmg.
+# Needs the Developer ID Application certificate in the keychain and the App Store Connect API key in
+# the environment (documents/macos-distribution.md).
+dmg:
+	bash scripts/macos/export_developer_id.sh
+	bash scripts/macos/notarize_and_dmg.sh
 
 clean:
 	rm -rf $(DERIVED_DATA)
