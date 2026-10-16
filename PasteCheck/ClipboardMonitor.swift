@@ -18,34 +18,108 @@ final class ClipboardMonitor {
         case needsPermission
     }
 
+    /// What the menu bar icon and the top of the menu show, the first matching case in declaration order.
+    enum Status {
+        /// The first-launch window was not closed yet, so nothing is inspected.
+        case setupNotFinished
+        /// The user paused inspection from the menu.
+        case paused
+        /// Inspection is on but macOS would ask or deny on a read (`AccessState.needsPermission`).
+        case needsPermission
+        /// New clipboard content is inspected.
+        case watching
+    }
+
     /// AppKit has no change notification for the pasteboard, so `changeCount` is polled. Half a second is short
     /// enough that a warning arrives before a typical copy-switch-paste, and comparing one integer that often costs
     /// next to nothing.
     static let pollingInterval: Duration = .milliseconds(500)
+    /// The `UserDefaults` key of the flag set when the first-launch window is closed. Unset means the window has not
+    /// been closed on this Mac yet.
+    static let hasCompletedOnboardingKey = "hasCompletedOnboarding"
 
     private(set) var accessState: AccessState
     /// When new clipboard text was last inspected; `nil` until the first change after launch.
     private(set) var lastCheckedAt: Date?
     /// The stored per-day warning counts, refreshed whenever a warning is recorded.
     private(set) var warningCountsByDay: [String: Int]
+    /// Whether the first-launch window was closed once. Until then nothing is inspected, so the macOS clipboard access
+    /// alert does not appear before that window explains it.
+    private(set) var hasCompletedOnboarding: Bool
+    /// The pause set from the menu. Kept in memory only, so relaunching the app always starts inspecting again.
+    private(set) var pause: Pause = .notPaused
 
     @ObservationIgnored private var lastChangeCount: Int
     @ObservationIgnored private var pollingTask: Task<Void, Never>?
     /// The text recognition of the image copied last, while it runs.
     @ObservationIgnored private var imageInspectionTask: Task<Void, Never>?
 
+    /// The state shown in the menu bar icon and at the top of the menu.
+    var status: Status {
+        if !hasCompletedOnboarding {
+            return .setupNotFinished
+        }
+        if pause.isActive(now: Date()) {
+            return .paused
+        }
+        switch accessState {
+        case .needsPermission:
+            return .needsPermission
+        case .watching:
+            return .watching
+        }
+    }
+
     /// Starts polling at once. Whatever was already on the clipboard at launch is not read, so launching never
     /// triggers the macOS clipboard access alert by itself.
     init() {
         accessState = Self.currentAccessState()
         warningCountsByDay = WarningCountStore.warnings(defaults: .standard)
+        hasCompletedOnboarding = UserDefaults.standard.bool(forKey: Self.hasCompletedOnboardingKey)
         lastChangeCount = NSPasteboard.general.changeCount
+        if hasCompletedOnboarding {
+            WarningNotifier.requestAuthorization()
+        }
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.pollingInterval)
                 self?.inspectIfChanged()
             }
         }
+    }
+
+    /// Starts inspecting and remembers that the first-launch window was closed, so it is not shown at the next launch.
+    /// Also asks for notification permission, which the user may have skipped in the window: without it no warning can
+    /// be shown. Idempotent: the flag is only set, and the system asks for permission once.
+    func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: Self.hasCompletedOnboardingKey)
+        hasCompletedOnboarding = true
+        WarningNotifier.requestAuthorization()
+    }
+
+    /// Sets the pause; `.notPaused` resumes. What was copied before this call is not inspected afterwards, and an image
+    /// recognition still running is cancelled, because the user chose not to have that content checked.
+    /// Idempotent for the same `pause`.
+    func updatePause(pause: Pause) {
+        self.pause = pause
+        imageInspectionTask?.cancel()
+        imageInspectionTask = nil
+        lastChangeCount = NSPasteboard.general.changeCount
+    }
+
+    /// Brings up the macOS clipboard access alert from the first-launch window by reading the clipboard once, or opens
+    /// the setting in System Settings when macOS would no longer ask (the user already answered the alert).
+    /// What is read is dropped at once: it is not inspected, stored, or shown (`documents/PROJECT.md` invariant 1).
+    /// With an empty clipboard nothing is read, and the alert appears on the first copy after setup instead.
+    func requestAccess() {
+        if #available(macOS 15.4, *), NSPasteboard.general.accessBehavior != .default {
+            ExternalLinks.openClipboardAccessSettings()
+            return
+        }
+        if let type = NSPasteboard.general.types?.first {
+            _ = NSPasteboard.general.data(forType: type)
+        }
+        updateAccessState()
     }
 
     /// Reads and inspects the clipboard once per `changeCount` change. Reading only on a change, and not at all while
@@ -56,6 +130,16 @@ final class ClipboardMonitor {
         // meantime is inspected as soon as access is allowed.
         updateAccessState()
         let pasteboard = NSPasteboard.general
+        // Written only when the timed pause ends, so the icon and menu switch back to watching on their own.
+        if case .until = pause, !pause.isActive(now: Date()) {
+            pause = .notPaused
+        }
+        // Content copied before setup or while paused is skipped for good: during setup reading it would bring up the
+        // access alert too early, and while paused the user chose not to have it checked.
+        guard hasCompletedOnboarding, !pause.isActive(now: Date()) else {
+            lastChangeCount = pasteboard.changeCount
+            return
+        }
         guard accessState == .watching, pasteboard.changeCount != lastChangeCount else {
             return
         }
@@ -82,7 +166,8 @@ final class ClipboardMonitor {
         imageInspectionTask?.cancel()
         imageInspectionTask = nil
         let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
-        let textFindings = text.map { SecretDetector.findings(in: $0) } ?? []
+        let kinds = DetectionSettingsStore.enabledKinds(defaults: .standard)
+        let textFindings = text.map { SecretDetector.findings(in: $0, kinds: kinds) } ?? []
         // `nil` also means the clipboard holds no image to inspect, which is not a permission problem.
         guard let imageData else {
             warnIfFound(
@@ -103,19 +188,18 @@ final class ClipboardMonitor {
             }
             self?.warnIfFound(
                 textFindings: textFindings,
-                imageFindings: SecretDetector.findings(in: RecognizedText.inspectableText(lines: lines)),
+                imageFindings: SecretDetector.findings(in: RecognizedText.inspectableText(lines: lines), kinds: kinds),
                 frontmostAppName: frontmostAppName,
                 changeCount: changeCount
             )
         }
     }
 
-    /// The image on `pasteboard` to recognize text in, or `nil` when OCR inspection is off or there is no image.
+    /// The image on `pasteboard` to recognize text in, or `nil` when there is no image.
     /// A copied file is out of scope (https://github.com/bannzai/pastecheck/issues/9 ), so a pasteboard with a file
     /// URL is not read as an image, whatever image type it also offers. Both PNG and TIFF are formats Vision reads.
     private static func imageData(pasteboard: NSPasteboard) -> Data? {
-        guard ImageTextRecognizer.isEnabled(defaults: .standard),
-              pasteboard.types?.contains(.fileURL) != true,
+        guard pasteboard.types?.contains(.fileURL) != true,
               let imageType = pasteboard.availableType(from: [.png, .tiff]) else {
             return nil
         }

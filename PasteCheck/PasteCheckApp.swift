@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The entry point of an app that lives only in the menu bar. It has no windows (`LSUIElement` in Info.plist);
-/// clipboard monitoring runs from launch and is controlled from the menu bar.
+/// The entry point of an app that lives only in the menu bar (`LSUIElement` in Info.plist). Clipboard monitoring is
+/// controlled from the menu bar panel; the only window is the first-launch window.
 @main
 struct PasteCheckApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -11,15 +11,17 @@ struct PasteCheckApp: App {
         MenuBarExtra {
             MenuContent(monitor: monitor)
         } label: {
-            // The icon itself tells the user the monitoring state without opening the menu. The symbols per state,
-            // including `shield.slash` for the paused state that the menu settings add, are listed in
-            // `documents/design/app-icon/README.md`. A switch, so a new state cannot ship without its symbol.
-            switch monitor.accessState {
-            case .watching:
-                Image(systemName: "checkmark.shield")
-            case .needsPermission:
-                Image(systemName: "exclamationmark.shield")
-            }
+            MenuBarIcon(monitor: monitor)
         }
+        // A panel rather than a menu, because the paused state is shown as a colored band
+        // (`documents/design/mock-2026-10-11/MenuPaused.dc.html`), which a menu cannot draw.
+        .menuBarExtraStyle(.window)
+        Window("Welcome to PasteCheck", id: OnboardingView.windowID) {
+            OnboardingView(monitor: monitor)
+        }
+        .windowResizability(.contentSize)
+        .defaultLaunchBehavior(monitor.hasCompletedOnboarding ? .suppressed : .presented)
+        // Restoring the window at launch would bring it back after setup; it opens only from the code above and the menu.
+        .restorationBehavior(.disabled)
     }
 }

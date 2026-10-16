@@ -16,6 +16,12 @@
 		3D8E402C6F91A3C5E70B2D43 /* MenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8E402C6F91A3C5E70B2D33 /* MenuContent.swift */; };
 		4E9F513D70A2B4D6F81C3E54 /* WarningCountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E9F513D70A2B4D6F81C3E44 /* WarningCountStore.swift */; };
 		5FA0624E81B3C5E7092D4F65 /* WarningNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA0624E81B3C5E7092D4F55 /* WarningNotifier.swift */; };
+		A10A0000000000000000B001 /* DetectionSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A0000000000000000A001 /* DetectionSettingsStore.swift */; };
+		A10A0000000000000000B002 /* ExternalLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A0000000000000000A002 /* ExternalLinks.swift */; };
+		A10A0000000000000000B003 /* LaunchAtLoginToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A0000000000000000A003 /* LaunchAtLoginToggle.swift */; };
+		A10A0000000000000000B004 /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A0000000000000000A004 /* MenuBarIcon.swift */; };
+		A10A0000000000000000B005 /* MenuRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A0000000000000000A005 /* MenuRows.swift */; };
+		A10A0000000000000000B006 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A0000000000000000A006 /* OnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +37,12 @@
 		3D8E402C6F91A3C5E70B2D33 /* MenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContent.swift; sourceTree = "<group>"; };
 		4E9F513D70A2B4D6F81C3E44 /* WarningCountStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningCountStore.swift; sourceTree = "<group>"; };
 		5FA0624E81B3C5E7092D4F55 /* WarningNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarningNotifier.swift; sourceTree = "<group>"; };
+		A10A0000000000000000A001 /* DetectionSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionSettingsStore.swift; sourceTree = "<group>"; };
+		A10A0000000000000000A002 /* ExternalLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalLinks.swift; sourceTree = "<group>"; };
+		A10A0000000000000000A003 /* LaunchAtLoginToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginToggle.swift; sourceTree = "<group>"; };
+		A10A0000000000000000A004 /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
+		A10A0000000000000000A005 /* MenuRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuRows.swift; sourceTree = "<group>"; };
+		A10A0000000000000000A006 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +78,12 @@
 				C48B578AA7A3360F5BCF08EF /* PasteCheckApp.swift */,
 				4E9F513D70A2B4D6F81C3E44 /* WarningCountStore.swift */,
 				5FA0624E81B3C5E7092D4F55 /* WarningNotifier.swift */,
+				A10A0000000000000000A001 /* DetectionSettingsStore.swift */,
+				A10A0000000000000000A002 /* ExternalLinks.swift */,
+				A10A0000000000000000A003 /* LaunchAtLoginToggle.swift */,
+				A10A0000000000000000A004 /* MenuBarIcon.swift */,
+				A10A0000000000000000A005 /* MenuRows.swift */,
+				A10A0000000000000000A006 /* OnboardingView.swift */,
 			);
 			path = PasteCheck;
 			sourceTree = "<group>";
@@ -169,6 +187,12 @@
 				A7DFA8730D8D9E6A7FD1DFA8 /* PasteCheckApp.swift in Sources */,
 				4E9F513D70A2B4D6F81C3E54 /* WarningCountStore.swift in Sources */,
 				5FA0624E81B3C5E7092D4F65 /* WarningNotifier.swift in Sources */,
+				A10A0000000000000000B001 /* DetectionSettingsStore.swift in Sources */,
+				A10A0000000000000000B002 /* ExternalLinks.swift in Sources */,
+				A10A0000000000000000B003 /* LaunchAtLoginToggle.swift in Sources */,
+				A10A0000000000000000B004 /* MenuBarIcon.swift in Sources */,
+				A10A0000000000000000B005 /* MenuRows.swift in Sources */,
+				A10A0000000000000000B006 /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

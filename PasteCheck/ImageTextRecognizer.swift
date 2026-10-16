@@ -6,17 +6,9 @@ import Vision
 ///
 /// The recognized text is returned to the caller only to be inspected, and is never stored, logged, or shown
 /// (`.claude/rules/clipboard-content-handling.md`).
+///
+/// OCR has no on/off setting and always runs (`documents/DIRECTION.md` "決めたこと", 2026-10-13).
 enum ImageTextRecognizer {
-    /// The `UserDefaults` key of the "Text inside images (OCR)" detection switch. The menu row that changes it comes
-    /// with the menu bar settings (https://github.com/bannzai/pastecheck/issues/10); until then only this key exists.
-    static let isEnabledKey = "detectsTextInImages"
-
-    /// Whether copied images are inspected. When the key is unset it is `true`, because OCR inspection is one of the
-    /// MVP features (`documents/DIRECTION.md` "必要な機能") and the switch is for turning it off.
-    static func isEnabled(defaults: UserDefaults) -> Bool {
-        defaults.object(forKey: isEnabledKey) as? Bool ?? true
-    }
-
     /// The text lines Vision recognized in `imageData` (PNG or TIFF), one per text region, or an empty array when the
     /// image has no text or cannot be read or the calling task is cancelled. Recognition is slow on a large image, so
     /// it runs off the main actor, and cancelling the calling task cancels the Vision request so a replaced image does
