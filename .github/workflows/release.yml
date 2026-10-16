@@ -75,6 +75,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/v${{ inputs.version }}
+          # No later step pushes, and make dmg should not see a token in .git/config.
+          persist-credentials: false
 
       # The DMG and the cask are named after the app's version, so an input that differs from it would
       # publish assets that the cask's URL does not point to.
@@ -113,6 +115,11 @@ jobs:
           done
           security set-key-partition-list -S apple-tool:,apple: -k "${keychain_password}" "${keychain_path}"
           security list-keychain -d user -s "${keychain_path}"
+          # Stops here instead of at signing when the .p12 held no usable Developer ID identity.
+          if ! security find-identity -v -p codesigning "${keychain_path}" | grep -q '"Developer ID Application: '; then
+            echo "::error::DEVELOPER_ID_APPLICATION_P12_BASE64 holds no valid Developer ID Application identity with its private key"
+            exit 1
+          fi
 
       - name: Build, notarize, and staple the DMG
         env:
