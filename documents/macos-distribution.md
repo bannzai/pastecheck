@@ -109,7 +109,7 @@ The workflow runs only when started by hand (`workflow_dispatch`). A trigger on 
    gh run watch -R bannzai/pastecheck <run ID from the list>
    ```
 
-4. The workflow runs `make dmg` and publishes the release with `PasteCheck-<version>.dmg` and `pastecheck.rb`. Running it again for the same version replaces both assets.
+4. The workflow runs `make dmg` and publishes the release with `PasteCheck-<version>.dmg` and `pastecheck.rb`. Once the DMG is published, running it again for the same version fails before building: a rebuilt DMG has a different checksum and would break the cask already in the tap, so release a new version instead. A run that failed before uploading the DMG can be run again.
 
 ### Updating the Homebrew tap
 
