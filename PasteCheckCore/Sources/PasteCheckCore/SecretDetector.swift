@@ -23,10 +23,13 @@ import Foundation
 ///   not required because hex and base62 tokens have none. A trailing ` # comment` after the value is allowed, as
 ///   `.env` files commonly annotate values that way. A URL value is skipped unless it carries credentials (`@`).
 public enum SecretDetector {
-    /// Returns every match of every rule in `text`, sorted by position (ties are broken by `SecretKind` order).
+    /// Returns every match of the rules of `kinds` in `text`, sorted by position (ties are broken by `SecretKind` order).
     /// Overlapping matches of different kinds are all reported; the caller decides how to summarize them.
-    public static func findings(in text: String) -> [Finding] {
+    /// - Parameter kinds: The kinds to look for. Every kind when omitted, because a kind is skipped only when the user
+    ///   turned its "Detect" checkbox off in the menu, and the app passes that setting explicitly.
+    public static func findings(in text: String, kinds: Set<SecretKind> = Set(SecretKind.allCases)) -> [Finding] {
         let matches = SecretKind.allCases
+            .filter { kinds.contains($0) }
             .flatMap { kind in
                 ranges(kind: kind, text: text).map { range in
                     (kind: kind, range: range)
