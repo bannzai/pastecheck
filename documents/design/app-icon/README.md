@@ -40,6 +40,6 @@ The menu bar shows SF Symbols, which macOS renders as template images (they foll
 | --- | --- |
 | Watching the clipboard | `checkmark.shield` |
 | Paused | `shield.slash` |
-| Clipboard access needed | `exclamationmark.shield` |
+| Clipboard access needed, or the first-launch window not closed yet | `exclamationmark.shield` |
 
-`PasteCheck/PasteCheckApp.swift` picks the symbol from `ClipboardMonitor.AccessState`. The paused state is added together with the pause setting in https://github.com/bannzai/pastecheck/issues/10 , which uses `shield.slash`. The three names are available on the deployment target macOS 15.0: `/System/Library/CoreServices/CoreGlyphs.bundle/Contents/Resources/name_availability.plist` (read on macOS 27.0 on 2026-10-16) lists each of them under the year "2019", which its `year_to_release` table maps to macOS 10.15.
+`PasteCheck/MenuBarIcon.swift` picks the symbol from `ClipboardMonitor.Status`. The three names are available on the deployment target macOS 15.0: `/System/Library/CoreServices/CoreGlyphs.bundle/Contents/Resources/name_availability.plist` (read on macOS 27.0 on 2026-10-16) lists each of them under the year "2019", which its `year_to_release` table maps to macOS 10.15.

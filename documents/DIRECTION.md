@@ -33,8 +33,8 @@ The MVP (the list bannzai settled in the build decision as "both (build on the w
 - [x] A notification on detection (type and position only, no value). Keeping per-date counts on the device of the warnings shown and of the false positives recorded with "Not a secret" in the notification (the measurement source of the decision criteria and the menu's "Today's warnings")
 - [ ] Matching against the actual values of secrets stored in SecChain (warns reliably, regardless of format, only when one of your own secrets is copied. The matching path that keeps values out of PasteCheck is designed in a child issue, and if SecChain needs changes, those are a prerequisite)
 - [x] OCR inspection of images (Vision)
-- [ ] Menu bar settings (pause, on/off per type, launch at login) and first-launch guidance (clipboard access permission, notification permission, SecChain integration)
-- [ ] Links to contact, the privacy policy, and the terms of use
+- [x] Menu bar settings (pause, on/off per type, launch at login) and first-launch guidance (clipboard access permission, notification permission, SecChain integration). The SecChain checkbox and the SecChain step of the first-launch window come with the SecChain matching feature
+- [x] Links to contact, the privacy policy, and the terms of use
 - [x] App icon
 - [ ] Distribution: Developer ID signing, notarization, a DMG on GitHub Releases, and a cask in my own Homebrew tap (bannzai/homebrew-tap). The release workflow runs only via `workflow_dispatch` until the decision to launch is made
 - [ ] Switch documents, code comments, and UI text to English (to publish as OSS)
@@ -49,7 +49,11 @@ Candidates (not in the MVP. Whether to add them is decided on a decision date or
 
 ## デザインの方向
 
-(Decided in the decision on the direction of look and experience. The mockups are in `documents/design/mock-2026-10-11/`)
+Decided by bannzai on 2026-10-16 in the decision on the direction of look and experience (https://github.com/bannzai/pastecheck/issues/5 ). The mockups are in `documents/design/mock-2026-10-11/`.
+
+- Look: the direction of the mockups, close to the standard macOS menus and panels (system font, light gray surfaces, one blue accent color, no decoration of its own). The settings, the first-launch window, and the icons follow it
+- The warning is a standard macOS notification (no custom panel), with the two actions "Clear clipboard" and "Not a secret"
+- A first-launch window is needed: clipboard access permission, notification permission, SecChain integration, and "Start watching"
 
 ## 決めたこと
 
@@ -75,6 +79,12 @@ Candidates (not in the MVP. Whether to add them is decided on a decision date or
 | 2026-10-12 | Image OCR (#9) | The "Text inside images (OCR)" switch is the `UserDefaults` key `detectsTextInImages`, on when unset (OCR is an MVP feature, and the switch is for turning it off). The menu row that changes it is left to the menu bar settings issue (#10) | agent |
 | 2026-10-12 | Image OCR (#9) | Replaces the row above about inspecting only the text: when the clipboard holds both text and an image, inspect both and show one warning that covers both ("..., also in the copied image"). The app that receives the paste picks which one it reads, and PasteCheck cannot know which at copy time, so skipping either could miss the one that gets pasted. With an image, the warning waits for OCR so that one copy still gives one warning | bannzai (PR #17 review) |
 | 2026-10-16 | App icon (#11) | With no reply yet on the look decision (#5), the app icon follows the look the agent proposed there (one accent color `#1f6fd6`, no decoration): a copied sheet where one line is only outlined ("where, not what"), out of 3 candidates. The menu bar uses SF Symbols per state (`checkmark.shield` / `shield.slash` / `exclamationmark.shield`). To switch, change `source_svg` in `documents/design/app-icon/render.sh` and run it (`documents/design/app-icon/README.md`) | agent |
+| 2026-10-13 | Menu bar settings (#10) | Replaces the 2026-10-12 row about the `detectsTextInImages` switch: OCR has no on/off setting and always runs, and the menu has no "Text inside images (OCR)" row | bannzai ("OCR の設定は設けなくていい" in the PR #17 merge conversation) |
+| 2026-10-16 | Menu bar settings (#10) | Following the row above, the unused key and its reader (`ImageTextRecognizer.isEnabledKey` / `isEnabled(defaults:)`) are removed, so a value stored under `detectsTextInImages` is ignored | agent |
+| 2026-10-16 | Look and experience (#5) | The look follows the mockups (close to standard macOS, one blue accent, no decoration), the first-launch window is needed, and the warning stays a standard notification with "Clear clipboard" and "Not a secret". Written out in "デザインの方向" above | bannzai |
+| 2026-10-16 | Menu bar settings (#10) | The menu bar opens a panel (`MenuBarExtra` with the window style) instead of a menu, because the paused state is shown as a colored band as in `MenuPaused.dc.html`, which a menu cannot draw. The rows keep the menu's order and look (label left, checkbox or shortcut right) | agent |
+| 2026-10-16 | Menu bar settings (#10) | Each "Detect" checkbox is a `Bool` in `UserDefaults` (`detectsApiKeysAndTokens` and so on, `DetectionCategory.defaultsKey` in `PasteCheckCore`), on when unset, including `.env style KEY=value` (the mockup shows it off, but every format is an MVP detection and the checkbox exists to turn one off after false positives). A pause is kept in memory only, so relaunching always resumes, and what is copied while paused is never inspected later | agent |
+| 2026-10-16 | Menu bar settings (#10) | Nothing is inspected until the first-launch window is closed once (by "Start watching" or the close button), so the macOS clipboard access alert does not appear before the window explains it. Notification permission is asked from that window and again when it closes, instead of at every launch | agent |
 | 2026-10-17 | Distribution (#12) | The Developer ID path (`make dmg`) uses no provisioning profile and keeps no team in the project: the only entitlement is the App Sandbox, which needs no profile, and the team comes from `DEVELOPMENT_TEAM` or the only Developer ID Application identity in the keychain. The release workflow takes the version as input and builds the already pushed tag `v<version>`, so the tag push trigger added later builds the same commit. Steps and sources: `documents/macos-distribution.md` | agent |
 
 ## agent に任せること

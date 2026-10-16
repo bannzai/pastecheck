@@ -19,12 +19,12 @@ enum WarningNotifier {
     /// clear the clipboard.
     static let launchID = UUID().uuidString
 
-    /// Registers the warning's actions and asks for permission to notify. Safe to call on every launch: the system
-    /// replaces the categories and only asks the user once.
+    /// Registers the warning's actions. Safe to call on every launch: the system replaces the categories.
+    /// Permission is asked for by `requestAuthorization()` from the first-launch window instead, so the system prompt
+    /// does not appear before that window explains it.
     @MainActor
     static func configure() {
-        let center = UNUserNotificationCenter.current()
-        center.setNotificationCategories([
+        UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(
                 identifier: categoryIdentifier,
                 actions: [
@@ -34,6 +34,24 @@ enum WarningNotifier {
                 intentIdentifiers: []
             ),
         ])
+    }
+
+    /// For the "Allow" button of the first-launch window: asks for permission, or opens PasteCheck's notification
+    /// settings when the user already denied it, because the system never asks again after a denial.
+    @MainActor
+    static func requestAuthorizationOrOpenSettings() {
+        Task {
+            guard await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .denied else {
+                requestAuthorization()
+                return
+            }
+            ExternalLinks.openNotificationSettings()
+        }
+    }
+
+    /// Asks for permission to notify. Safe to call any number of times: the system asks the user only once.
+    @MainActor
+    static func requestAuthorization() {
         Task {
             // A denial is not an error to surface here: the warning simply cannot be shown, and the user can turn
             // notifications on in System Settings.
