@@ -17,6 +17,18 @@ enum ExternalLinks {
     /// The top of Privacy & Security in System Settings.
     static let privacySettingsURL = URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension")
 
+    /// PasteCheck's page in System Settings > Notifications. Unverified: whether the `id` query selects the app's page
+    /// rather than the top of Notifications.
+    static let notificationSettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=" + (Bundle.main.bundleIdentifier ?? "")
+    )
+
+    /// Opens PasteCheck's notification settings.
+    @MainActor
+    static func openNotificationSettings() {
+        open(urls: [notificationSettingsURL])
+    }
+
     /// Opens each of `urls` that is valid, in order.
     @MainActor
     static func open(urls: [URL?]) {

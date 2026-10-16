@@ -33,7 +33,7 @@ struct OnboardingView: View {
                 detail: "Warnings arrive as notifications. They name the kind of secret and where it sits, never the value itself.",
                 actionTitle: "Allow"
             ) {
-                WarningNotifier.requestAuthorization()
+                WarningNotifier.requestAuthorizationOrOpenSettings()
             }
             Spacer(minLength: 0)
             Divider()

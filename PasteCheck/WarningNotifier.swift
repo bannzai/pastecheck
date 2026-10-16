@@ -36,6 +36,19 @@ enum WarningNotifier {
         ])
     }
 
+    /// For the "Allow" button of the first-launch window: asks for permission, or opens PasteCheck's notification
+    /// settings when the user already denied it, because the system never asks again after a denial.
+    @MainActor
+    static func requestAuthorizationOrOpenSettings() {
+        Task {
+            guard await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .denied else {
+                requestAuthorization()
+                return
+            }
+            ExternalLinks.openNotificationSettings()
+        }
+    }
+
     /// Asks for permission to notify. Safe to call any number of times: the system asks the user only once.
     @MainActor
     static func requestAuthorization() {
