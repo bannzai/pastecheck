@@ -130,9 +130,12 @@ final class ClipboardMonitor {
         // meantime is inspected as soon as access is allowed.
         updateAccessState()
         let pasteboard = NSPasteboard.general
-        // Written only when the timed pause ends, so the icon and menu switch back to watching on their own.
+        // Written only when the timed pause ends, so the icon and menu switch back to watching on their own. This poll
+        // inspects nothing, because a change since the last poll may have been copied while still paused (just before
+        // the end, or before the Mac slept through it). A copy in the same half second after the end is skipped too.
         if case .until = pause, !pause.isActive(now: Date()) {
-            pause = .notPaused
+            updatePause(pause: .notPaused)
+            return
         }
         // Content copied before setup or while paused is skipped for good: during setup reading it would bring up the
         // access alert too early, and while paused the user chose not to have it checked.
