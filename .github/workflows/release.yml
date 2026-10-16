@@ -72,9 +72,15 @@ jobs:
           fi
           # A rebuilt DMG has a different SHA-256 (new signing timestamps), so replacing a published one
           # would break the cask already copied to the tap. A run that failed before uploading the DMG
-          # can still be retried.
-          if gh release view "v${VERSION}" -R "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' 2> /dev/null | grep -qx "PasteCheck-${VERSION}.dmg"; then
-            echo "::error::v${VERSION} already has PasteCheck-${VERSION}.dmg; release a new version instead of replacing it"
+          # can still be retried. Any other error than a missing release stops the run, so an API
+          # failure is not taken for "no DMG yet".
+          if release_assets="$(gh release view "v${VERSION}" -R "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' 2>&1)"; then
+            if grep -qx "PasteCheck-${VERSION}.dmg" <<< "${release_assets}"; then
+              echo "::error::v${VERSION} already has PasteCheck-${VERSION}.dmg; release a new version instead of replacing it"
+              exit 1
+            fi
+          elif [ "${release_assets}" != "release not found" ]; then
+            echo "::error::Could not read the release v${VERSION}: ${release_assets}"
             exit 1
           fi
 
@@ -136,7 +142,9 @@ jobs:
           ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
         run: make dmg
 
-      # A release left without the DMG by an earlier failed run gets its assets replaced.
+      # The DMG is uploaded last: the first step treats a release that has it as complete, so a run
+      # that fails before that point (including one that left a release without the DMG) can be
+      # run again.
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -148,12 +156,16 @@ jobs:
           sed -e "s/^  version \".*\"$/  version \"${VERSION}\"/" \
             -e "s/^  sha256 \".*\"$/  sha256 \"${dmg_sha256}\"/" \
             Casks/pastecheck.rb > "${cask_path}"
-          if gh release view "${tag}" > /dev/null 2>&1; then
-            gh release upload "${tag}" "${dmg_path}" "${cask_path}" --clobber
-          else
-            gh release create "${tag}" "${dmg_path}" "${cask_path}" \
-              --verify-tag --title "PasteCheck ${VERSION}" --generate-notes
+          # A change to the template's layout would otherwise publish the placeholder values.
+          if ! grep -qx "  version \"${VERSION}\"" "${cask_path}" || ! grep -qx "  sha256 \"${dmg_sha256}\"" "${cask_path}"; then
+            echo "::error::Could not fill the version and sha256 into Casks/pastecheck.rb"
+            exit 1
           fi
+          if ! gh release view "${tag}" > /dev/null 2>&1; then
+            gh release create "${tag}" --verify-tag --title "PasteCheck ${VERSION}" --generate-notes
+          fi
+          gh release upload "${tag}" "${cask_path}" --clobber
+          gh release upload "${tag}" "${dmg_path}" --clobber
 
       - name: Delete the temporary keychain
         if: always()
