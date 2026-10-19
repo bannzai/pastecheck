@@ -188,7 +188,10 @@ final class ClipboardMonitor {
             async let lines = Self.recognizedLines(imageData: imageData)
             async let secChainOutcome = Self.secChainOutcome(text: secChainText)
             let imageFindings = SecretDetector.findings(in: RecognizedText.inspectableText(lines: await lines), kinds: kinds)
-            let outcome = await secChainOutcome
+            // Read again, because "SecChain secrets" may have been turned off while the match ran, and then neither
+            // its warning nor its state should show up.
+            let finishedOutcome = await secChainOutcome
+            let outcome = DetectionSettingsStore.matchesSecChainSecrets(defaults: .standard) ? finishedOutcome : nil
             // A copy made meanwhile replaced the content, so this result is dropped. A cancelled match stopped the tool
             // on purpose, so it does not count as a failure either.
             guard !Task.isCancelled, NSPasteboard.general.changeCount == changeCount else {

@@ -40,13 +40,6 @@ enum SecChainMatcher {
         guard isInstalled else {
             return .notInstalled
         }
-        // Checked on every match, because SecChain can be replaced while PasteCheck runs, so that a replaced tool is
-        // not even started. The bundle can still be swapped between this check and the launch (an app installed by
-        // the user is writable by the user's processes), so `ToolRun` checks the started process too before it hands
-        // over any text.
-        guard hasGenuineSignature() else {
-            return .failed
-        }
         let run = ToolRun()
         let timeoutTask = Task.detached {
             // Cancelled when the run finished in time, and then there is nothing to stop.
@@ -71,8 +64,8 @@ enum SecChainMatcher {
         }
     }
 
-    /// Whether the tool bundle on disk satisfies `toolCodeRequirement`.
-    nonisolated private static func hasGenuineSignature() -> Bool {
+    /// Whether the tool bundle on disk satisfies `toolCodeRequirement`. Reads and hashes the bundle, so it blocks.
+    nonisolated static func hasGenuineSignature() -> Bool {
         var staticCode: SecStaticCode?
         guard SecStaticCodeCreateWithPath(toolBundleURL as CFURL, [], &staticCode) == errSecSuccess,
               let staticCode,
@@ -112,15 +105,30 @@ enum SecChainMatcher {
 }
 
 /// One run of the SecChain tool, shared between the task that performs it and the timeout and cancellation that stop
-/// it. `@unchecked Sendable` because `Process` is not marked `Sendable`; every access to it goes through `lock`.
+/// it. `@unchecked Sendable` because `Process` is not marked `Sendable`: the setup, the launch, and every use from
+/// `stop()` go through `lock`; the process identifier and the termination state are read without it, only by the
+/// thread running `perform`, after `run()` or `waitUntilExit()` returned, when `Process` no longer changes them.
 private final class ToolRun: @unchecked Sendable {
+    /// How long a tool has to exit after SIGTERM before it is killed. A tool that ignores SIGTERM would otherwise keep
+    /// `perform` from returning, and with it the warning from PasteCheck's own patterns; one second is plenty for a
+    /// tool that only answers with names to exit.
+    private static let killGracePeriod: DispatchTimeInterval = .seconds(1)
+
     private let lock = NSLock()
     private let process = Process()
     /// Set by `stop()`, so a stop that comes before the launch keeps the tool from starting.
     private var isStopped = false
 
-    /// Starts the tool, writes `text` to its standard input, and waits for it to exit. Blocks the calling thread.
+    /// Checks the tool, starts it, writes `text` to its standard input, and waits for it to exit. Blocks the calling
+    /// thread.
     func perform(text: String) -> SecChainMatchOutcome {
+        // Checked on every match, because SecChain can be replaced while PasteCheck runs, so that a replaced tool is
+        // not even started. The bundle can still be swapped between this check and the launch (an app installed by
+        // the user is writable by the user's processes), so the started process is checked too before it is handed
+        // any text.
+        guard SecChainMatcher.hasGenuineSignature() else {
+            return .failed
+        }
         let input = Pipe()
         let output = Pipe()
         lock.lock()
@@ -162,15 +170,31 @@ private final class ToolRun: @unchecked Sendable {
         )
     }
 
-    /// Stops the tool, or keeps it from starting. Idempotent: once stopped, nothing more happens.
+    /// Stops the tool with SIGTERM, then SIGKILL after `killGracePeriod`, or keeps it from starting. Idempotent: only
+    /// the first call does anything.
     func stop() {
         lock.lock()
         defer {
             lock.unlock()
         }
+        guard !isStopped else {
+            return
+        }
         isStopped = true
-        if process.isRunning {
-            process.terminate()
+        guard process.isRunning else {
+            return
+        }
+        process.terminate()
+        // Not reaped while `isRunning`, so the identifier still belongs to the tool when it is killed.
+        let processIdentifier = process.processIdentifier
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Self.killGracePeriod) { [self] in
+            lock.lock()
+            defer {
+                lock.unlock()
+            }
+            if process.isRunning {
+                kill(processIdentifier, SIGKILL)
+            }
         }
     }
 }
