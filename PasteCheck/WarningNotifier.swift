@@ -71,8 +71,8 @@ enum WarningNotifier {
     }
 
     /// Shows one warning for the clipboard content at `changeCount`. With `secChainLabels`, the warning is about the
-    /// SecChain match alone: the copy holds one of the user's own secrets, which is what matters, and the pattern
-    /// findings of the same copy are most likely that same value seen as a look-alike.
+    /// SecChain match, plus a count of the image findings: the copy holds one of the user's own secrets, which is what
+    /// matters, and the pattern findings of the copied text are most likely that same value seen as a look-alike.
     /// - Returns: Whether the system accepted the notification. It is `false` when notifications are off for PasteCheck
     ///   (`UNError.notificationsNotAllowed`), in which case no warning was shown and the caller must not count one.
     ///   Source: https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed
@@ -98,7 +98,11 @@ enum WarningNotifier {
             content.categoryIdentifier = categoryIdentifier
         } else {
             content.title = WarningMessage.secChainTitle(matchedLabels: secChainLabels)
-            content.body = WarningMessage.secChainBody(matchedLabels: secChainLabels, frontmostAppName: frontmostAppName)
+            content.body = WarningMessage.secChainBody(
+                matchedLabels: secChainLabels,
+                imageFindings: imageFindings,
+                frontmostAppName: frontmostAppName
+            )
             content.categoryIdentifier = secChainCategoryIdentifier
         }
         content.userInfo = [dayKeyUserInfoKey: dayKey, changeCountUserInfoKey: changeCount, launchIDUserInfoKey: launchID]
