@@ -4,11 +4,15 @@ import UserNotifications
 
 /// Shows the warning notification and carries out its two actions.
 ///
-/// The notification text comes from `WarningMessage` and holds only kinds and positions. The only extra data on the
+/// The notification text comes from `WarningMessage` and holds only kinds and positions, or the names of matched
+/// SecChain secrets. The only extra data on the
 /// notification is the day key used to count a "Not a secret" press, the pasteboard `changeCount` the warning was
 /// about, and the launch it was posted in, never anything from the clipboard (`documents/PROJECT.md` invariant 1).
 enum WarningNotifier {
     static let categoryIdentifier = "secretWarning"
+    /// The category of a warning about a SecChain match. It has no "Not a secret", because a stored value that was
+    /// copied cannot be a false positive (`documents/PROJECT.md` "Features").
+    static let secChainCategoryIdentifier = "secChainWarning"
     static let clearClipboardActionIdentifier = "clearClipboard"
     static let notASecretActionIdentifier = "notASecret"
     static let dayKeyUserInfoKey = "dayKey"
@@ -30,6 +34,13 @@ enum WarningNotifier {
                 actions: [
                     UNNotificationAction(identifier: clearClipboardActionIdentifier, title: "Clear clipboard"),
                     UNNotificationAction(identifier: notASecretActionIdentifier, title: "Not a secret"),
+                ],
+                intentIdentifiers: []
+            ),
+            UNNotificationCategory(
+                identifier: secChainCategoryIdentifier,
+                actions: [
+                    UNNotificationAction(identifier: clearClipboardActionIdentifier, title: "Clear clipboard"),
                 ],
                 intentIdentifiers: []
             ),
@@ -59,7 +70,9 @@ enum WarningNotifier {
         }
     }
 
-    /// Shows one warning for the clipboard content at `changeCount`.
+    /// Shows one warning for the clipboard content at `changeCount`. With `secChainLabels`, the warning is about the
+    /// SecChain match alone: the copy holds one of the user's own secrets, which is what matters, and the pattern
+    /// findings of the same copy are most likely that same value seen as a look-alike.
     /// - Returns: Whether the system accepted the notification. It is `false` when notifications are off for PasteCheck
     ///   (`UNError.notificationsNotAllowed`), in which case no warning was shown and the caller must not count one.
     ///   Source: https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed
@@ -69,18 +82,25 @@ enum WarningNotifier {
     static func post(
         textFindings: [Finding],
         imageFindings: [Finding],
+        secChainLabels: [String],
         frontmostAppName: String?,
         dayKey: String,
         changeCount: Int
     ) async -> Bool {
         let content = UNMutableNotificationContent()
-        content.title = WarningMessage.title(findings: textFindings + imageFindings)
-        content.body = WarningMessage.body(
-            textFindings: textFindings,
-            imageFindings: imageFindings,
-            frontmostAppName: frontmostAppName
-        )
-        content.categoryIdentifier = categoryIdentifier
+        if secChainLabels.isEmpty {
+            content.title = WarningMessage.title(findings: textFindings + imageFindings)
+            content.body = WarningMessage.body(
+                textFindings: textFindings,
+                imageFindings: imageFindings,
+                frontmostAppName: frontmostAppName
+            )
+            content.categoryIdentifier = categoryIdentifier
+        } else {
+            content.title = WarningMessage.secChainTitle(matchedLabels: secChainLabels)
+            content.body = WarningMessage.secChainBody(matchedLabels: secChainLabels, frontmostAppName: frontmostAppName)
+            content.categoryIdentifier = secChainCategoryIdentifier
+        }
         content.userInfo = [dayKeyUserInfoKey: dayKey, changeCountUserInfoKey: changeCount, launchIDUserInfoKey: launchID]
         content.sound = .default
         do {
