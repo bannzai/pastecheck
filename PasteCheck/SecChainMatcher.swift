@@ -163,6 +163,14 @@ private final class ToolRun: @unchecked Sendable {
         }
         let standardOutput = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        // A tool stopped on timeout may handle SIGTERM and exit 0 with only part of its answer, so a stopped run never
+        // counts as an answer.
+        lock.lock()
+        let wasStopped = isStopped
+        lock.unlock()
+        if wasStopped {
+            return .failed
+        }
         return SecChainMatch.outcome(
             terminationStatus: process.terminationStatus,
             terminatedBySignal: process.terminationReason == .uncaughtSignal,

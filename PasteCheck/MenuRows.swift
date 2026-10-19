@@ -153,14 +153,16 @@ struct SecChainStatusRow: View {
         }
         switch monitor.lastSecChainMatchAnswered {
         case true?:
-            return "Linked"
+            // Not "Linked": an answer with no names is also what a Keychain search that found nothing (for example,
+            // blocked inside the App Sandbox) gives, so the row only says that SecChain answered.
+            return "On, SecChain answered"
         case false?:
             // Fail open: the copy was still checked against the patterns, so the row says what is missing, not that
             // nothing was checked.
             return "Could not match, patterns only"
         case nil:
-            // "Linked" only after SecChain answered, because a tool that fails its signature check or cannot read the
-            // Keychain is found out on the first copied text.
+            // Nothing more until SecChain answered, because a tool that fails its signature check or cannot start is
+            // found out on the first copied text.
             return "On, waiting for a copy"
         }
     }
