@@ -55,6 +55,51 @@ private func finding(kind: SecretKind, line: Int, column: Int, length: Int) -> F
     )
 }
 
+@Test func secChainTitleForOneSecret() {
+    #expect(WarningMessage.secChainTitle(matchedLabels: ["DUMMY_TOKEN (scope user)"]) == "Your clipboard holds a secret saved in SecChain")
+}
+
+@Test func secChainTitleCountsSecrets() {
+    #expect(
+        WarningMessage.secChainTitle(matchedLabels: ["DUMMY_TOKEN (scope user)", "OTHER_DUMMY (scope user)"])
+            == "Your clipboard holds 2 secrets saved in SecChain"
+    )
+}
+
+@Test func secChainBodyNamesTheSecretAndFrontmostApp() {
+    #expect(
+        WarningMessage.secChainBody(matchedLabels: ["DUMMY_TOKEN (github.com/owner/repo)"], imageFindings: [], frontmostAppName: "Terminal")
+            == "Contains the value of DUMMY_TOKEN (github.com/owner/repo), while Terminal was in front. This is your real secret, not a look-alike. PasteCheck did not change the clipboard."
+    )
+}
+
+@Test func secChainBodyCountsOtherSecretsAndLeavesOutUnknownApp() {
+    #expect(
+        WarningMessage.secChainBody(
+            matchedLabels: ["DUMMY_TOKEN (scope user)", "OTHER_DUMMY (scope user)", "THIRD_DUMMY (scope user)"],
+            imageFindings: [],
+            frontmostAppName: nil
+        )
+            == "Contains the value of DUMMY_TOKEN (scope user) and 2 more saved secrets. This is your real secret, not a look-alike. PasteCheck did not change the clipboard."
+    )
+}
+
+@Test func secChainBodyCountsLookAlikesInTheImage() {
+    let imageFindings = [
+        finding(kind: .awsAccessKeyID, line: 1, column: 1, length: 20),
+        finding(kind: .githubToken, line: 2, column: 1, length: 40),
+    ]
+
+    #expect(
+        WarningMessage.secChainBody(matchedLabels: ["DUMMY_TOKEN (scope user)"], imageFindings: imageFindings, frontmostAppName: nil)
+            == "Contains the value of DUMMY_TOKEN (scope user). This is your real secret, not a look-alike. The copied image also holds 2 look-alikes. PasteCheck did not change the clipboard."
+    )
+    #expect(
+        WarningMessage.secChainBody(matchedLabels: ["DUMMY_TOKEN (scope user)"], imageFindings: [imageFindings[0]], frontmostAppName: nil)
+            == "Contains the value of DUMMY_TOKEN (scope user). This is your real secret, not a look-alike. The copied image also holds 1 look-alike. PasteCheck did not change the clipboard."
+    )
+}
+
 @Test func bodyLeavesOutUnknownAppAndCountsOtherMatches() {
     let findings = [
         finding(kind: .githubToken, line: 1, column: 1, length: 40),
