@@ -40,8 +40,10 @@ enum SecChainMatcher {
         guard isInstalled else {
             return .notInstalled
         }
-        // Checked on every match, because SecChain can be replaced while PasteCheck runs. The bundle could still be
-        // swapped between this check and the launch; doing that needs write access to `/Applications`.
+        // Checked on every match, because SecChain can be replaced while PasteCheck runs, so that a replaced tool is
+        // not even started. The bundle can still be swapped between this check and the launch (an app installed by
+        // the user is writable by the user's processes), so `ToolRun` checks the started process too before it hands
+        // over any text.
         guard hasGenuineSignature() else {
             return .failed
         }
@@ -69,17 +71,43 @@ enum SecChainMatcher {
         }
     }
 
-    /// Whether the tool bundle satisfies `toolCodeRequirement`.
+    /// Whether the tool bundle on disk satisfies `toolCodeRequirement`.
     nonisolated private static func hasGenuineSignature() -> Bool {
         var staticCode: SecStaticCode?
-        var requirement: SecRequirement?
         guard SecStaticCodeCreateWithPath(toolBundleURL as CFURL, [], &staticCode) == errSecSuccess,
               let staticCode,
-              SecRequirementCreateWithString(toolCodeRequirement as CFString, [], &requirement) == errSecSuccess,
-              let requirement else {
+              let requirement = codeRequirement() else {
             return false
         }
         return SecStaticCodeCheckValidity(staticCode, SecCSFlags(rawValue: kSecCSStrictValidate), requirement) == errSecSuccess
+    }
+
+    /// Whether the running process `processIdentifier` satisfies `toolCodeRequirement`. Checks the code the process
+    /// actually runs, so a tool swapped in after `hasGenuineSignature()` fails here. Whether this check is allowed from
+    /// inside the App Sandbox is part of the real-Mac check (https://github.com/bannzai/pastecheck/issues/2 ); if it is
+    /// not, every match fails and the menu says "Could not match, patterns only", and no text has been handed over.
+    nonisolated static func isGenuineRunningTool(processIdentifier: Int32) -> Bool {
+        var code: SecCode?
+        guard SecCodeCopyGuestWithAttributes(
+            nil,
+            [kSecGuestAttributePid as String: processIdentifier] as CFDictionary,
+            [],
+            &code
+        ) == errSecSuccess,
+              let code,
+              let requirement = codeRequirement() else {
+            return false
+        }
+        return SecCodeCheckValidity(code, [], requirement) == errSecSuccess
+    }
+
+    /// `toolCodeRequirement` compiled, or `nil` if it does not compile, which fails both checks.
+    nonisolated private static func codeRequirement() -> SecRequirement? {
+        var requirement: SecRequirement?
+        guard SecRequirementCreateWithString(toolCodeRequirement as CFString, [], &requirement) == errSecSuccess else {
+            return nil
+        }
+        return requirement
     }
 }
 
@@ -107,6 +135,14 @@ private final class ToolRun: @unchecked Sendable {
             return .failed
         }
         lock.unlock()
+        // A child is not reaped before `waitUntilExit()`, so its process identifier cannot belong to another process
+        // here. Closing the input lets a tool that ignores the termination see the end of it and exit.
+        guard SecChainMatcher.isGenuineRunningTool(processIdentifier: process.processIdentifier) else {
+            stop()
+            try? input.fileHandleForWriting.close()
+            process.waitUntilExit()
+            return .failed
+        }
         // Written from another thread and closed, so the tool sees the end of its input while this thread drains its
         // output. A tool that exits early closes the pipe, and without `F_SETNOSIGPIPE` writing to it would raise
         // SIGPIPE and terminate PasteCheck.

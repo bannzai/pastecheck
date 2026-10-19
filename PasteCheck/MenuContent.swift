@@ -61,7 +61,7 @@ struct MenuContent: View {
                 ForEach(DetectionCategory.allCases, id: \.self) { category in
                     DetectionCategoryRow(category: category)
                 }
-                SecChainSecretsRow()
+                SecChainSecretsRow(monitor: monitor)
             }
             .disabled(monitor.status == .paused)
             MenuDivider()

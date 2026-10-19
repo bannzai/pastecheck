@@ -114,11 +114,15 @@ struct DetectionCategoryRow: View {
 /// The "SecChain secrets" checkbox under "Detect", stored by `DetectionSettingsStore`. Not disabled while SecChain is
 /// missing, so it can be turned on before SecChain is installed; the "SecChain" row then says "Not installed".
 struct SecChainSecretsRow: View {
+    let monitor: ClipboardMonitor
     @AppStorage(DetectionSettingsStore.matchesSecChainSecretsKey)
     private var matchesSecChainSecrets = DetectionSettingsStore.defaultMatchesSecChainSecrets
 
     var body: some View {
         MenuCheckboxRow(title: "SecChain secrets", isOn: $matchesSecChainSecrets)
+            .onChange(of: matchesSecChainSecrets) {
+                monitor.forgetSecChainMatch()
+            }
             // `confirm` and `device-bound` secrets ask for authentication on every read, which would interrupt the user
             // on every copy, so `secchain match` skips them, and values shorter than 8 characters or made of whitespace
             // only, which occur in unrelated text (https://github.com/bannzai/SecChain/pull/92 , `SecretMask.isLookedFor`).

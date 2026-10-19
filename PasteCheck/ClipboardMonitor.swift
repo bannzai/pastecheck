@@ -51,7 +51,7 @@ final class ClipboardMonitor {
     /// The pause set from the menu. Kept in memory only, so relaunching the app always starts inspecting again.
     private(set) var pause: Pause = .notPaused
     /// Whether the last SecChain match got an answer: `true` when SecChain answered (the tool passed the signature
-    /// check and read the Keychain), `false` when it did not (`SecChainMatchOutcome.failed`, so the copy was checked
+    /// checks and exited normally; whether it found the stored values is seen only from a match), `false` when it did not (`SecChainMatchOutcome.failed`, so the copy was checked
     /// against PasteCheck's own patterns only), and `nil` until a match has run with SecChain installed. The matched
     /// names are not kept.
     private(set) var lastSecChainMatchAnswered: Bool?
@@ -199,7 +199,10 @@ final class ClipboardMonitor {
                 self?.updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: true)
             case .failed:
                 self?.updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: false)
-            case .notInstalled, nil:
+            case .notInstalled:
+                // A SecChain installed again later is a different tool, which has not answered yet.
+                self?.forgetSecChainMatch()
+            case nil:
                 break
             }
             self?.warnIfFound(
@@ -226,6 +229,15 @@ final class ClipboardMonitor {
             return nil
         }
         return await SecChainMatcher.match(text: text)
+    }
+
+    /// Clears `lastSecChainMatchAnswered`, so the menu does not show the answer of an earlier link, for example after
+    /// "SecChain secrets" was turned off and on again. Idempotent.
+    func forgetSecChainMatch() {
+        guard lastSecChainMatchAnswered != nil else {
+            return
+        }
+        lastSecChainMatchAnswered = nil
     }
 
     /// Sets `lastSecChainMatchAnswered` only when it changed, for the same re-render reason as `updateAccessState()`.
