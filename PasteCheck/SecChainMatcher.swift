@@ -57,9 +57,13 @@ enum SecChainMatcher {
             timeoutTask.cancel()
         }
         return await withTaskCancellationHandler {
-            await Task.detached(priority: .userInitiated) {
-                run.perform(text: text)
-            }.value
+            await withCheckedContinuation { continuation in
+                // On a Dispatch queue rather than a task, because the run blocks its thread until the tool exits, and
+                // the Swift concurrency pool has only as many threads as there are cores.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    continuation.resume(returning: run.perform(text: text))
+                }
+            }
         } onCancel: {
             run.stop()
         }

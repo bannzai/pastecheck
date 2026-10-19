@@ -17,10 +17,11 @@ struct OnboardingView: View {
     private var matchesSecChainSecrets = DetectionSettingsStore.defaultMatchesSecChainSecrets
 
     /// What linking SecChain does. "Values never leave SecChain" holds because `secchain match` reads the stored values
-    /// itself and answers with names only (SecChain's design decision 8, `SecChainMatcher`). The standard protection
-    /// level is named because `secchain match` skips the others, which ask for authentication on every read.
+    /// itself and answers with names only (SecChain's design decision 8, `SecChainMatcher`). The limits are named
+    /// because `secchain match` skips the other protection levels, which ask for authentication on every read, and
+    /// values shorter than 8 characters, which occur in unrelated text (`SecretMask.isLookedFor` in SecChain).
     private var secChainDetail: String {
-        "Warn when your own saved secrets are copied, not just look-alikes. Copied text is checked by SecChain on this Mac, and values never leave SecChain. Only secrets at the standard protection level are matched."
+        "Warn when your own saved secrets are copied, not just look-alikes. Copied text is checked by SecChain on this Mac, and values never leave SecChain. Only secrets at the standard protection level with values of 8 or more characters are matched."
     }
 
     var body: some View {
@@ -45,22 +46,26 @@ struct OnboardingView: View {
             ) {
                 WarningNotifier.requestAuthorizationOrOpenSettings()
             }
-            if SecChainMatcher.isInstalled {
-                OnboardingStepRow(
-                    title: "Link SecChain (optional)",
-                    detail: secChainDetail,
-                    actionTitle: matchesSecChainSecrets ? "Linked" : "Link",
-                    isDone: matchesSecChainSecrets
-                ) {
-                    matchesSecChainSecrets = true
-                }
-            } else {
-                OnboardingStepRow(
-                    title: "Link SecChain (optional)",
-                    detail: "\(secChainDetail) SecChain is not installed on this Mac.",
-                    actionTitle: "Get SecChain"
-                ) {
-                    ExternalLinks.open(urls: [ExternalLinks.secChainURL])
+            // Redrawn every second, like the menu's "SecChain" row, so that installing SecChain after "Get SecChain"
+            // turns the step into "Link" without reopening this window. Nothing tells the app about the install.
+            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                if SecChainMatcher.isInstalled {
+                    OnboardingStepRow(
+                        title: "Link SecChain (optional)",
+                        detail: secChainDetail,
+                        actionTitle: matchesSecChainSecrets ? "Linked" : "Link",
+                        isDone: matchesSecChainSecrets
+                    ) {
+                        matchesSecChainSecrets = true
+                    }
+                } else {
+                    OnboardingStepRow(
+                        title: "Link SecChain (optional)",
+                        detail: "\(secChainDetail) SecChain is not installed on this Mac.",
+                        actionTitle: "Get SecChain"
+                    ) {
+                        ExternalLinks.open(urls: [ExternalLinks.secChainURL])
+                    }
                 }
             }
             Spacer(minLength: 0)

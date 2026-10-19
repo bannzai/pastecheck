@@ -120,8 +120,9 @@ struct SecChainSecretsRow: View {
     var body: some View {
         MenuCheckboxRow(title: "SecChain secrets", isOn: $matchesSecChainSecrets)
             // `confirm` and `device-bound` secrets ask for authentication on every read, which would interrupt the user
-            // on every copy, so `secchain match` skips them (https://github.com/bannzai/SecChain/pull/92 ).
-            .help("Warns when the value of a secret saved in SecChain is copied. Only secrets at the standard protection level are matched.")
+            // on every copy, so `secchain match` skips them, and values shorter than 8 characters or made of whitespace
+            // only, which occur in unrelated text (https://github.com/bannzai/SecChain/pull/92 , `SecretMask.isLookedFor`).
+            .help("Warns when the value of a secret saved in SecChain is copied. Only secrets at the standard protection level with values of 8 or more characters are matched.")
     }
 }
 
@@ -146,12 +147,18 @@ struct SecChainStatusRow: View {
         if !SecChainMatcher.isInstalled {
             return "Not installed"
         }
-        // Fail open: the copy was still checked against the patterns, so the row says what is missing, not that
-        // nothing was checked.
-        if monitor.secChainMatchFailed {
+        switch monitor.lastSecChainMatchAnswered {
+        case true?:
+            return "Linked"
+        case false?:
+            // Fail open: the copy was still checked against the patterns, so the row says what is missing, not that
+            // nothing was checked.
             return "Could not match, patterns only"
+        case nil:
+            // "Linked" only after SecChain answered, because a tool that fails its signature check or cannot read the
+            // Keychain is found out on the first copied text.
+            return "On, waiting for a copy"
         }
-        return "Linked"
     }
 }
 

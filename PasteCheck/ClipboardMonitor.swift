@@ -50,10 +50,11 @@ final class ClipboardMonitor {
     private(set) var hasCompletedOnboarding: Bool
     /// The pause set from the menu. Kept in memory only, so relaunching the app always starts inspecting again.
     private(set) var pause: Pause = .notPaused
-    /// Whether the last SecChain match got no answer (`SecChainMatchOutcome.failed`), so the copy was checked against
-    /// PasteCheck's own patterns only. `false` until a match fails, and again after the next match that answers. The
-    /// matched names are not kept.
-    private(set) var secChainMatchFailed = false
+    /// Whether the last SecChain match got an answer: `true` when SecChain answered (the tool passed the signature
+    /// check and read the Keychain), `false` when it did not (`SecChainMatchOutcome.failed`, so the copy was checked
+    /// against PasteCheck's own patterns only), and `nil` until a match has run with SecChain installed. The matched
+    /// names are not kept.
+    private(set) var lastSecChainMatchAnswered: Bool?
 
     @ObservationIgnored private var lastChangeCount: Int
     @ObservationIgnored private var pollingTask: Task<Void, Never>?
@@ -193,8 +194,13 @@ final class ClipboardMonitor {
             guard !Task.isCancelled, NSPasteboard.general.changeCount == changeCount else {
                 return
             }
-            if let outcome {
-                self?.updateSecChainMatchFailed(secChainMatchFailed: outcome == .failed)
+            switch outcome {
+            case .matched:
+                self?.updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: true)
+            case .failed:
+                self?.updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: false)
+            case .notInstalled, nil:
+                break
             }
             self?.warnIfFound(
                 textFindings: textFindings,
@@ -222,12 +228,12 @@ final class ClipboardMonitor {
         return await SecChainMatcher.match(text: text)
     }
 
-    /// Sets `secChainMatchFailed` only when it changed, for the same re-render reason as `updateAccessState()`.
-    private func updateSecChainMatchFailed(secChainMatchFailed: Bool) {
-        guard self.secChainMatchFailed != secChainMatchFailed else {
+    /// Sets `lastSecChainMatchAnswered` only when it changed, for the same re-render reason as `updateAccessState()`.
+    private func updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: Bool) {
+        guard self.lastSecChainMatchAnswered != lastSecChainMatchAnswered else {
             return
         }
-        self.secChainMatchFailed = secChainMatchFailed
+        self.lastSecChainMatchAnswered = lastSecChainMatchAnswered
     }
 
     /// The image on `pasteboard` to recognize text in, or `nil` when there is no image.
