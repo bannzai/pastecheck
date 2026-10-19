@@ -91,13 +91,13 @@ private final class ToolRun: @unchecked Sendable {
     func perform(text: String) -> SecChainMatchOutcome {
         let input = Pipe()
         let output = Pipe()
+        lock.lock()
         process.executableURL = SecChainMatcher.toolExecutableURL
         process.arguments = ["match"]
         process.standardInput = input
         process.standardOutput = output
         // Standard error explains a failure in words that are not needed here and is not shown or kept.
         process.standardError = FileHandle.nullDevice
-        lock.lock()
         guard !isStopped, (try? process.run()) != nil else {
             lock.unlock()
             return .failed
