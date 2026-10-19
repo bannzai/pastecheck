@@ -53,4 +53,34 @@ public enum WarningMessage {
         let app = frontmostAppName.map { ", while \($0) was in front" } ?? ""
         return "\(location)\(others)\(app). PasteCheck did not change the clipboard."
     }
+
+    /// The notification title when the copied text holds the value of a secret saved in SecChain
+    /// (`documents/design/mock-2026-10-11/WarningSecChain.dc.html`).
+    /// - Precondition: `matchedLabels` is not empty.
+    public static func secChainTitle(matchedLabels: [String]) -> String {
+        guard matchedLabels.count > 1 else {
+            return "Your clipboard holds a secret saved in SecChain"
+        }
+        return "Your clipboard holds \(matchedLabels.count) secrets saved in SecChain"
+    }
+
+    /// The notification body for a SecChain match: the first matched secret by the label `secchain match` gave it (its
+    /// name and where it is stored, never its value), how many others matched, and which app was frontmost.
+    /// - Precondition: `matchedLabels` is not empty, in the order `secchain match` wrote them.
+    public static func secChainBody(matchedLabels: [String], frontmostAppName: String?) -> String {
+        guard let first = matchedLabels.first else {
+            return "PasteCheck did not change the clipboard."
+        }
+        let others: String
+        switch matchedLabels.count - 1 {
+        case 0:
+            others = ""
+        case 1:
+            others = " and 1 more saved secret"
+        case let otherCount:
+            others = " and \(otherCount) more saved secrets"
+        }
+        let app = frontmostAppName.map { ", while \($0) was in front" } ?? ""
+        return "Contains the value of \(first)\(others)\(app). This is your real secret, not a look-alike. PasteCheck did not change the clipboard."
+    }
 }
