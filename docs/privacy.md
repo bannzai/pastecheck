@@ -20,7 +20,10 @@ bannzai (the "Provider") sets out this Privacy Policy (this "Policy") on how use
 
 ### Clipboard contents
 
-The App checks whether the text or images the user copies contain strings that look like sensitive information (API keys, access tokens, private keys, credit card numbers, and so on), and shows a warning if they do. All inspection happens inside the user's Mac, and clipboard contents are not written outside the App (files, logs, network), and the App does not hand them to other apps or command-line tools, with no exceptions. A warning shows only the type and position of what was detected, never the detected value itself.
+The App checks whether the text or images the user copies contain strings that look like sensitive information (API keys, access tokens, private keys, credit card numbers, and so on), and shows a warning if they do. All inspection happens inside the user's Mac, and clipboard contents are not written to files, logs, the App's settings, or the network, and the App does not hand them to other apps or command-line tools, with no exceptions. A warning shows only the type and position of what was detected and, when available, the name of the app that was in front when the clipboard change was noticed, never the detected value itself.
+
+<!-- source: PasteCheckCore/Sources/PasteCheckCore/WarningMessage.swift: body(textFindings:imageFindings:frontmostAppName:) appends ", while <app> was in front" when frontmostAppName is not nil. documents/PROJECT.md "Invariants" 1 is the scope of what is not written or passed on. -->
+
 
 ### Settings
 
