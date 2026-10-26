@@ -2,9 +2,9 @@ import PasteCheckCore
 import SwiftUI
 
 /// The menu bar panel, in the order of `documents/design/mock-2026-10-11/Main.dc.html` (watching) and
-/// `MenuPaused.dc.html` (paused). The "SecChain" row says whether matching runs instead of the mock's count of linked
-/// secrets, because `secchain match` answers with matched names only and nothing counts the stored secrets. OCR has no
-/// row because it has no setting (`documents/DIRECTION.md` "決めたこと", 2026-10-13).
+/// `MenuPaused.dc.html` (paused). The mock's rows for matching saved secrets are not built, because that matching was
+/// removed (`documents/DIRECTION.md` "決めたこと", 2026-10-27), and OCR has no row because it has no setting
+/// (`documents/DIRECTION.md` "決めたこと", 2026-10-13).
 struct MenuContent: View {
     let monitor: ClipboardMonitor
     @Environment(\.openWindow) private var openWindow
@@ -38,7 +38,6 @@ struct MenuContent: View {
                         title: "Warnings today",
                         value: "\(monitor.warningCountsByDay[WarningCounts.dayKey(date: Date(), timeZone: .autoupdatingCurrent)] ?? 0)"
                     )
-                    SecChainStatusRow(monitor: monitor)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -57,11 +56,8 @@ struct MenuContent: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.top, 4)
-            Group {
-                ForEach(DetectionCategory.allCases, id: \.self) { category in
-                    DetectionCategoryRow(category: category)
-                }
-                SecChainSecretsRow(monitor: monitor)
+            ForEach(DetectionCategory.allCases, id: \.self) { category in
+                DetectionCategoryRow(category: category)
             }
             .disabled(monitor.status == .paused)
             MenuDivider()

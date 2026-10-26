@@ -3,12 +3,10 @@ import Observation
 import PasteCheckCore
 
 /// Watches the general pasteboard, inspects new text and the text recognized in a new image with `SecretDetector`,
-/// matches new text against SecChain when "SecChain secrets" is on, and warns once per change through
-/// `WarningNotifier`. Holds the state shown at the top of the menu.
+/// and warns once per change through `WarningNotifier`. Holds the state shown at the top of the menu.
 ///
-/// The clipboard text, image, and recognized text live only in locals of `inspectIfChanged()` and its inspection
-/// task, and are never stored, logged or sent anywhere, except for the text handed to SecChain on this Mac by
-/// `SecChainMatcher` (`documents/PROJECT.md` invariant 1).
+/// The clipboard text, image, and recognized text live only in locals of `inspectIfChanged()` and its recognition
+/// task, and are never stored, logged or sent anywhere (`documents/PROJECT.md` invariant 1).
 @MainActor
 @Observable
 final class ClipboardMonitor {
@@ -50,16 +48,11 @@ final class ClipboardMonitor {
     private(set) var hasCompletedOnboarding: Bool
     /// The pause set from the menu. Kept in memory only, so relaunching the app always starts inspecting again.
     private(set) var pause: Pause = .notPaused
-    /// Whether the last SecChain match got an answer: `true` when SecChain answered (the tool passed the signature
-    /// checks and exited normally; whether it found the stored values is seen only from a match), `false` when it did not (`SecChainMatchOutcome.failed`, so the copy was checked
-    /// against PasteCheck's own patterns only), and `nil` until a match has run with SecChain installed. The matched
-    /// names are not kept.
-    private(set) var lastSecChainMatchAnswered: Bool?
 
     @ObservationIgnored private var lastChangeCount: Int
     @ObservationIgnored private var pollingTask: Task<Void, Never>?
-    /// The image recognition and SecChain match of the content copied last, while they run.
-    @ObservationIgnored private var inspectionTask: Task<Void, Never>?
+    /// The text recognition of the image copied last, while it runs.
+    @ObservationIgnored private var imageInspectionTask: Task<Void, Never>?
 
     /// The state shown in the menu bar icon and at the top of the menu.
     var status: Status {
@@ -105,12 +98,12 @@ final class ClipboardMonitor {
     }
 
     /// Sets the pause; `.notPaused` resumes. What was copied before this call is not inspected afterwards, and an image
-    /// recognition or SecChain match still running is cancelled, because the user chose not to have that content checked.
+    /// recognition still running is cancelled, because the user chose not to have that content checked.
     /// Idempotent for the same `pause`.
     func updatePause(pause: Pause) {
         self.pause = pause
-        inspectionTask?.cancel()
-        inspectionTask = nil
+        imageInspectionTask?.cancel()
+        imageInspectionTask = nil
         lastChangeCount = NSPasteboard.general.changeCount
     }
 
@@ -172,83 +165,37 @@ final class ClipboardMonitor {
         }
         lastChangeCount = changeCount
         lastCheckedAt = Date()
-        // The clipboard changed, so a recognition or match still running is about content that is no longer there.
-        inspectionTask?.cancel()
-        inspectionTask = nil
+        // The clipboard changed, so a recognition still running is about an image that is no longer there.
+        imageInspectionTask?.cancel()
+        imageInspectionTask = nil
         let frontmostAppName = NSWorkspace.shared.frontmostApplication?.localizedName
         let kinds = DetectionSettingsStore.enabledKinds(defaults: .standard)
         let textFindings = text.map { SecretDetector.findings(in: $0, kinds: kinds) } ?? []
-        // Only the copied text goes to SecChain, not the text recognized in an image: `documents/PROJECT.md` "Features"
-        // scopes the match to clipboard text, and OCR output can misread the characters of a value anyway.
-        let secChainText = DetectionSettingsStore.matchesSecChainSecrets(defaults: .standard) ? text : nil
-        // The warning waits for the image recognition and the SecChain match so that one copy gives one warning
-        // covering everything. Polling goes on while both run off the main actor. `imageData` is `nil` also when the
-        // clipboard holds no image to inspect, which is not a permission problem.
-        inspectionTask = Task { [weak self] in
-            async let lines = Self.recognizedLines(imageData: imageData)
-            async let secChainOutcome = Self.secChainOutcome(text: secChainText)
-            let imageFindings = SecretDetector.findings(in: RecognizedText.inspectableText(lines: await lines), kinds: kinds)
-            // Read again, because "SecChain secrets" may have been turned off while the match ran, and then neither
-            // its warning nor its state should show up.
-            let finishedOutcome = await secChainOutcome
-            let outcome = DetectionSettingsStore.matchesSecChainSecrets(defaults: .standard) ? finishedOutcome : nil
-            // A copy made meanwhile replaced the content, so this result is dropped. A cancelled match stopped the tool
-            // on purpose, so it does not count as a failure either.
+        // `nil` also means the clipboard holds no image to inspect, which is not a permission problem.
+        guard let imageData else {
+            warnIfFound(
+                textFindings: textFindings,
+                imageFindings: [],
+                frontmostAppName: frontmostAppName,
+                changeCount: changeCount
+            )
+            return
+        }
+        // With an image, the warning waits for its recognition so that one copy gives one warning covering both.
+        // Polling goes on while the image is recognized off the main actor.
+        imageInspectionTask = Task { [weak self] in
+            let lines = await ImageTextRecognizer.recognizedLines(imageData: imageData)
+            // A copy made during recognition replaced the content, so this result is dropped.
             guard !Task.isCancelled, NSPasteboard.general.changeCount == changeCount else {
                 return
             }
-            switch outcome {
-            case .matched:
-                self?.updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: true)
-            case .failed:
-                self?.updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: false)
-            case .notInstalled:
-                // A SecChain installed again later is a different tool, which has not answered yet.
-                self?.forgetSecChainMatch()
-            case nil:
-                break
-            }
             self?.warnIfFound(
                 textFindings: textFindings,
-                imageFindings: imageFindings,
-                secChainLabels: outcome?.matchedLabels ?? [],
+                imageFindings: SecretDetector.findings(in: RecognizedText.inspectableText(lines: lines), kinds: kinds),
                 frontmostAppName: frontmostAppName,
                 changeCount: changeCount
             )
         }
-    }
-
-    /// The text lines recognized in `imageData`, or none without an image.
-    nonisolated private static func recognizedLines(imageData: Data?) async -> [String] {
-        guard let imageData else {
-            return []
-        }
-        return await ImageTextRecognizer.recognizedLines(imageData: imageData)
-    }
-
-    /// The SecChain match of `text`, or `nil` when there is nothing to match (no text, or "SecChain secrets" is off).
-    nonisolated private static func secChainOutcome(text: String?) async -> SecChainMatchOutcome? {
-        guard let text else {
-            return nil
-        }
-        return await SecChainMatcher.match(text: text)
-    }
-
-    /// Clears `lastSecChainMatchAnswered`, so the menu does not show the answer of an earlier link, for example after
-    /// "SecChain secrets" was turned off and on again. Idempotent.
-    func forgetSecChainMatch() {
-        guard lastSecChainMatchAnswered != nil else {
-            return
-        }
-        lastSecChainMatchAnswered = nil
-    }
-
-    /// Sets `lastSecChainMatchAnswered` only when it changed, for the same re-render reason as `updateAccessState()`.
-    private func updateLastSecChainMatchAnswered(lastSecChainMatchAnswered: Bool) {
-        guard self.lastSecChainMatchAnswered != lastSecChainMatchAnswered else {
-            return
-        }
-        self.lastSecChainMatchAnswered = lastSecChainMatchAnswered
     }
 
     /// The image on `pasteboard` to recognize text in, or `nil` when there is no image.
@@ -262,17 +209,15 @@ final class ClipboardMonitor {
         return pasteboard.data(forType: imageType)
     }
 
-    /// Shows one warning for the clipboard content at `changeCount` and counts it, when there are findings or SecChain
-    /// matches. Not idempotent: each warning the system accepts is one more warning shown, which is what the metric
-    /// counts.
+    /// Shows one warning for the clipboard content at `changeCount` and counts it, when there are findings.
+    /// Not idempotent: each warning the system accepts is one more warning shown, which is what the metric counts.
     private func warnIfFound(
         textFindings: [Finding],
         imageFindings: [Finding],
-        secChainLabels: [String],
         frontmostAppName: String?,
         changeCount: Int
     ) {
-        guard !textFindings.isEmpty || !imageFindings.isEmpty || !secChainLabels.isEmpty else {
+        guard !textFindings.isEmpty || !imageFindings.isEmpty else {
             return
         }
         // The app stays running across time zone changes, and `autoupdatingCurrent` is documented as "automatically
@@ -284,7 +229,6 @@ final class ClipboardMonitor {
             guard await WarningNotifier.post(
                 textFindings: textFindings,
                 imageFindings: imageFindings,
-                secChainLabels: secChainLabels,
                 frontmostAppName: frontmostAppName,
                 dayKey: dayKey,
                 changeCount: changeCount

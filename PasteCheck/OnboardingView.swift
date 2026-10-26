@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The first-launch window (`documents/design/mock-2026-10-11/Onboarding.dc.html`). It explains the two permissions
-/// PasteCheck needs and lets the user trigger each prompt, and offers to link SecChain when it is installed or where to
-/// get it when it is not.
+/// PasteCheck needs and lets the user trigger each prompt. The mock's step for linking saved secrets is not built,
+/// because that matching was removed (`documents/DIRECTION.md` "決めたこと", 2026-10-27).
 ///
 /// Closing the window by any means, "Start watching" or the close button, starts inspecting and keeps the window from
 /// opening at the next launch. Making only one button count would leave a user who closed it with nothing watched.
@@ -12,17 +12,6 @@ struct OnboardingView: View {
 
     let monitor: ClipboardMonitor
     @Environment(\.dismissWindow) private var dismissWindow
-    /// The menu's "SecChain secrets" checkbox, which "Link" turns on.
-    @AppStorage(DetectionSettingsStore.matchesSecChainSecretsKey)
-    private var matchesSecChainSecrets = DetectionSettingsStore.defaultMatchesSecChainSecrets
-
-    /// What linking SecChain does. "Values never leave SecChain" holds because `secchain match` reads the stored values
-    /// itself and answers with names only (SecChain's design decision 8, `SecChainMatcher`). The limits are named
-    /// because `secchain match` skips the other protection levels, which ask for authentication on every read, and
-    /// values shorter than 8 characters, which occur in unrelated text (`SecretMask.isLookedFor` in SecChain).
-    private var secChainDetail: String {
-        "Warn when your own saved secrets are copied, not just look-alikes. Copied text is checked by SecChain on this Mac, and values never leave SecChain. Only secrets at the standard protection level with values of 8 or more characters are matched."
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -45,28 +34,6 @@ struct OnboardingView: View {
                 actionTitle: "Allow"
             ) {
                 WarningNotifier.requestAuthorizationOrOpenSettings()
-            }
-            // Redrawn every second, like the menu's "SecChain" row, so that installing SecChain after "Get SecChain"
-            // turns the step into "Link" without reopening this window. Nothing tells the app about the install.
-            TimelineView(.periodic(from: .now, by: 1)) { _ in
-                if SecChainMatcher.isInstalled {
-                    OnboardingStepRow(
-                        title: "Link SecChain (optional)",
-                        detail: secChainDetail,
-                        actionTitle: matchesSecChainSecrets ? "Linked" : "Link",
-                        isDone: matchesSecChainSecrets
-                    ) {
-                        matchesSecChainSecrets = true
-                    }
-                } else {
-                    OnboardingStepRow(
-                        title: "Link SecChain (optional)",
-                        detail: "\(secChainDetail) SecChain is not installed on this Mac.",
-                        actionTitle: "Get SecChain"
-                    ) {
-                        ExternalLinks.open(urls: [ExternalLinks.secChainURL])
-                    }
-                }
             }
             Spacer(minLength: 0)
             Divider()
@@ -105,8 +72,6 @@ private struct OnboardingStepRow: View {
     let title: String
     let detail: String
     let actionTitle: String
-    /// Whether the step needs nothing more, which disables its button.
-    var isDone = false
     let action: () -> Void
 
     var body: some View {
@@ -126,7 +91,6 @@ private struct OnboardingStepRow: View {
             }
             Spacer(minLength: 0)
             Button(actionTitle, action: action)
-                .disabled(isDone)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
