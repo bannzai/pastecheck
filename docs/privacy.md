@@ -20,11 +20,10 @@ bannzai (the "Provider") sets out this Privacy Policy (this "Policy") on how use
 
 ### Clipboard contents
 
-The App checks whether the text or images the user copies contain strings that look like sensitive information (API keys, access tokens, private keys, credit card numbers, and so on), and shows a warning if they do. All inspection happens inside the user's Mac, and clipboard contents are not written outside the App (files, logs, network). A warning shows only the type and position of what was detected, never the detected value itself.
+The App checks whether the text or images the user copies contain strings that look like sensitive information (API keys, access tokens, private keys, credit card numbers, and so on), and shows a warning if they do. All inspection happens inside the user's Mac, and clipboard contents are not written to files, logs, the App's settings, or the network, and the App does not hand them to other apps or command-line tools, with no exceptions. A warning shows only the type and position of what was detected and, when available, the name of the app that was in front when the clipboard change was noticed, never the detected value itself.
 
-The only exception is matching with SecChain, which is off until the user turns it on. When it is on, the App hands the copied text to the SecChain command-line tool on the same Mac, on its standard input, after checking the tool's code signature. SecChain answers with only the names of the stored secrets the text contains, and a warning shows those names, never the values. The text is not written to files or sent to the network on the way.
+<!-- source: PasteCheckCore/Sources/PasteCheckCore/WarningMessage.swift: body(textFindings:imageFindings:frontmostAppName:) appends ", while <app> was in front" when frontmostAppName is not nil. documents/PROJECT.md "Invariants" 1 is the scope of what is not written or passed on. -->
 
-<!-- source: documents/PROJECT.md "Invariants". PasteCheck/SecChainMatcher.swift: the tool at /Applications/SecChain.app/Contents/Helpers/secchain.app is run with the argument "match" only after SecStaticCodeCheckValidity passes on the bundle, the text is written only after SecCodeCheckValidity passes on the started process, to its standard input through a pipe, its standard error goes to /dev/null, and its standard output is read as names. PasteCheck/DetectionSettingsStore.swift: matchesSecChainSecrets is false when unset. What secchain match reads and answers: https://github.com/bannzai/SecChain/pull/92 -->
 
 ### Settings
 

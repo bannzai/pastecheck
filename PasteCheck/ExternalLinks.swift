@@ -9,9 +9,6 @@ enum ExternalLinks {
     static let privacyPolicyURL = URL(string: "https://bannzai.github.io/pastecheck/privacy/")
     /// The terms of use, served by GitHub Pages from `docs/terms.md` (`permalink: /terms/`).
     static let termsURL = URL(string: "https://bannzai.github.io/pastecheck/terms/")
-    /// SecChain's repository, where the first-launch window sends a user who wants to link SecChain but has not
-    /// installed it. The repository rather than a download, because SecChain has no release yet.
-    static let secChainURL = URL(string: "https://github.com/bannzai/SecChain")
     /// The "Paste from Other Apps" page under Privacy & Security, the setting behind `NSPasteboard.accessBehavior`.
     /// Unverified: whether the `Pasteboard` anchor opens that page on macOS 15 (https://github.com/bannzai/pastecheck/issues/10 ).
     static let clipboardAccessSettingsURL = URL(

@@ -11,6 +11,8 @@ This directory holds the mockups an agent made for the "direction of look and ex
 
 Mockups are proposals and may show details the requirements do not define yet (for example the "12 secrets linked" count in the menu, which would need SecChain to expose a count). `documents/PROJECT.md` is the source for what gets built; a mockup detail not covered there is decided in the implementing issue.
 
+The SecChain parts of `mock-2026-10-11/` (the SecChain warning, the SecChain step of the first-launch window, and the SecChain rows of the menu) are no longer built, because SecChain matching was removed (`documents/DIRECTION.md` "決めたこと", 2026-10-27). The mockups themselves are kept unchanged as the record.
+
 ## Source of truth
 
 The files in this repository are the source. A canvas URL stops opening when the account is switched, so do not rely on it.
