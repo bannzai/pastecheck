@@ -34,7 +34,7 @@ jobs:
       id-token: write # Tailscale authenticates the runner with OIDC
       contents: read
     # simtunnel has no release tags, so pin a commit on main.
-    uses: bannzai/simtunnel/.github/workflows/macos-session.yml@2fe90069d18a233f073d99683b6aaef2eedef2e4 # main 2026-10-07
+    uses: bannzai/simtunnel/.github/workflows/macos-session.yml@bcd45174e03f11dcb156c315ae1d8adad788a298 # main 2026-10-29
     with:
       session: ${{ inputs.session }}
       runner: ${{ inputs.runner }}
